@@ -1,0 +1,29 @@
+[package]
+name = "cloudreve-api"
+version.workspace = true
+edition.workspace = true
+description = "A Rust library for interacting with Cloudreve API"
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+keywords = ["cloudreve", "api", "storage", "client"]
+categories = ["api-bindings", "web-programming::http-client"]
+
+[dependencies]
+reqwest = { workspace = true }
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+url = { workspace = true }
+urlencoding = { workspace = true }
+chrono = { workspace = true }
+log = "0.4"
+futures = "0.3"
+
+[dev-dependencies]
+tokio = { workspace = true }
+
+[lib]
+name = "cloudreve_api"
+path = "src/lib.rs"
