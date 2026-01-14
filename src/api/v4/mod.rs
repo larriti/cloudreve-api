@@ -101,9 +101,20 @@ impl ApiV4Client {
 
         let response = request.send().await?;
         let status = response.status();
-        let json: T = response.json().await?;
-        debug!("Response status: {}, JSON: {:?}", status, json);
-        Ok(json)
+
+        // Get raw response text for better error reporting
+        let raw_text = response.text().await?;
+
+        match serde_json::from_str::<T>(&raw_text) {
+            Ok(json) => {
+                debug!("Response status: {}, JSON: {:?}", status, json);
+                Ok(json)
+            }
+            Err(e) => {
+                debug!("JSON parse error: {}, raw response: {}", e, raw_text);
+                Err(Error::Json(e))
+            }
+        }
     }
 
     /// Makes a PUT request to the API
@@ -122,10 +133,20 @@ impl ApiV4Client {
 
         let response = request.send().await?;
         let status = response.status();
-        let json: T = response.json().await?;
 
-        debug!("Response status: {}, JSON: {:?}", status, json);
-        Ok(json)
+        // Get raw response text for better error reporting
+        let raw_text = response.text().await?;
+
+        match serde_json::from_str::<T>(&raw_text) {
+            Ok(json) => {
+                debug!("Response status: {}, JSON: {:?}", status, json);
+                Ok(json)
+            }
+            Err(e) => {
+                debug!("JSON parse error: {}, raw response: {}", e, raw_text);
+                Err(Error::Json(e))
+            }
+        }
     }
 
     pub async fn patch<T>(&self, endpoint: &str, body: &impl Serialize) -> Result<T, Error>
@@ -143,10 +164,20 @@ impl ApiV4Client {
 
         let response = request.send().await?;
         let status = response.status();
-        let json: T = response.json().await?;
 
-        debug!("Response status: {}, JSON: {:?}", status, json);
-        Ok(json)
+        // Get raw response text for better error reporting
+        let raw_text = response.text().await?;
+
+        match serde_json::from_str::<T>(&raw_text) {
+            Ok(json) => {
+                debug!("Response status: {}, JSON: {:?}", status, json);
+                Ok(json)
+            }
+            Err(e) => {
+                debug!("JSON parse error: {}, raw response: {}", e, raw_text);
+                Err(Error::Json(e))
+            }
+        }
     }
 
     /// Makes a DELETE request to the API
@@ -165,9 +196,19 @@ impl ApiV4Client {
 
         let response = request.send().await?;
         let status = response.status();
-        let json: T = response.json().await?;
 
-        debug!("Response status: {}, JSON: {:?}", status, json);
-        Ok(json)
+        // Get raw response text for better error reporting
+        let raw_text = response.text().await?;
+
+        match serde_json::from_str::<T>(&raw_text) {
+            Ok(json) => {
+                debug!("Response status: {}, JSON: {:?}", status, json);
+                Ok(json)
+            }
+            Err(e) => {
+                debug!("JSON parse error: {}, raw response: {}", e, raw_text);
+                Err(Error::Json(e))
+            }
+        }
     }
 }
