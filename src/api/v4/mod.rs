@@ -16,6 +16,8 @@ pub mod session;
 pub mod share;
 /// Site-related methods for v4 API
 pub mod site;
+/// WebDAV account management methods for v4 API
+pub mod dav;
 /// User management methods for v4 API
 pub mod user;
 /// Workflow management methods for v4 API
