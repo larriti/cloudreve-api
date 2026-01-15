@@ -12,6 +12,8 @@ pub mod models;
 pub mod session;
 /// Share management methods for v4 API
 pub mod share;
+/// Site-related methods for v4 API
+pub mod site;
 /// User management methods for v4 API
 pub mod user;
 /// Workflow management methods for v4 API

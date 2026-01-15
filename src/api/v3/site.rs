@@ -2,7 +2,9 @@
 
 use crate::api::v3::models::*;
 use crate::api::v3::ApiV3Client;
+use crate::api::VersionInfo;
 use crate::Error;
+use crate::VERSION;
 
 impl ApiV3Client {
     /// Get site configuration
@@ -33,6 +35,15 @@ impl ApiV3Client {
     pub async fn ping(&self) -> Result<String, Error> {
         let response: ApiResponse<String> = self.get("/site/ping").await?;
         Ok(response.msg)
+    }
+
+    /// Get API version information
+    pub async fn get_version(&self) -> Result<VersionInfo, Error> {
+        Ok(VersionInfo {
+            api_version: "v3".to_string(),
+            library_version: VERSION.to_string(),
+            server_version: "unknown".to_string(),
+        })
     }
 
     /// Get user settings
