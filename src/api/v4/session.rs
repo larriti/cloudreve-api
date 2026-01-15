@@ -5,39 +5,6 @@ use crate::api::v4::ApiV4Client;
 use crate::Error;
 
 impl ApiV4Client {
-    pub async fn ping(&self) -> Result<String, Error> {
-        let response: crate::ApiResponse<String> = self.get("/site/ping").await?;
-        Ok(response.msg)
-    }
-
-    pub async fn get_site_config(&self, section: &str) -> Result<SiteConfig, Error> {
-        let endpoint = format!("/site/config/{}", section);
-        let response: crate::ApiResponse<SiteConfig> = self.get(&endpoint).await?;
-        match response.data {
-            Some(config) => Ok(config),
-            None => Err(crate::Error::Api {
-                code: response.code,
-                message: response.msg,
-            }),
-        }
-    }
-
-    pub async fn report_site_abuse(&self, request: &AbuseReportRequest<'_>) -> Result<(), Error> {
-        let response: crate::ApiResponse<()> = self.post("/site/abuse", request).await?;
-        if response.code == 0 {
-            Ok(())
-        } else {
-            Err(crate::Error::Api {
-                code: response.code,
-                message: response.msg,
-            })
-        }
-    }
-
-    pub async fn get_captcha(&self) -> Result<CaptchaResponse, Error> {
-        self.get("/site/captcha").await
-    }
-
     pub async fn prepare_login(&self, email: &str) -> Result<LoginPreparation, Error> {
         let endpoint = format!("/session/prepare?email={}", email);
         let response: crate::ApiResponse<LoginPreparation> = self.get(&endpoint).await?;

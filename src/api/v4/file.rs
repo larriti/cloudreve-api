@@ -112,10 +112,23 @@ impl ApiV4Client {
     }
 
     pub async fn create_directory(&self, path: &str) -> Result<(), Error> {
-        let _: ApiResponse<()> = self
-            .post("/file/dir", &serde_json::json!({ "path": path }))
-            .await?;
-        Ok(())
+        // Convert path to URI format
+        let uri = path_to_uri(path);
+
+        // Use the correct /file/create endpoint
+        let request = serde_json::json!({
+            "uri": uri,
+            "type": "folder"
+        });
+
+        let response: ApiResponse<serde_json::Value> = self.post("/file/create", &request).await?;
+        match response.code {
+            0 => Ok(()),
+            code => Err(Error::Api {
+                code: code as i32,
+                message: response.msg,
+            }),
+        }
     }
 
     pub async fn set_file_permission(
