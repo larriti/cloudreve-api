@@ -1,4 +1,5 @@
 use crate::api::v4::models::*;
+use crate::api::v4::uri::path_to_uri;
 use crate::api::v4::ApiV4Client;
 use crate::Error;
 use serde_json::Value;
@@ -9,7 +10,20 @@ impl ApiV4Client {
         &self,
         request: &CreateShareLinkRequest,
     ) -> Result<String, Error> {
-        let response: ApiResponse<String> = self.put("/share", request).await?;
+        // Convert URI format internally
+        let uri = path_to_uri(&request.uri);
+        let converted_request = CreateShareLinkRequest {
+            uri,
+            permissions: request.permissions.clone(),
+            is_private: request.is_private,
+            share_view: request.share_view,
+            expire: request.expire,
+            price: request.price,
+            password: request.password.clone(),
+            show_readme: request.show_readme,
+        };
+
+        let response: ApiResponse<String> = self.put("/share", &converted_request).await?;
         response.data.ok_or_else(|| {
             Error::InvalidResponse(format!(
                 "API returned error: code={}, msg={}",

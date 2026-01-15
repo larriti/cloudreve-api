@@ -1,6 +1,7 @@
 //! File-related API endpoints for Cloudreve v4 API
 
 use crate::api::v4::models::*;
+use crate::api::v4::uri::*;
 use crate::api::v4::ApiV4Client;
 use crate::Error;
 
@@ -125,7 +126,8 @@ impl ApiV4Client {
         Ok(())
     }
 
-    pub async fn delete_file_permission(&self, uri: &str) -> Result<(), Error> {
+    pub async fn delete_file_permission(&self, path: &str) -> Result<(), Error> {
+        let uri = path_to_uri(path);
         let _: ApiResponse<()> = self
             .delete(&format!("/file/permission?uri={}", uri))
             .await?;
@@ -179,8 +181,9 @@ impl ApiV4Client {
         Ok(())
     }
 
-    pub async fn delete_upload_session(&self, uri: &str, session_id: &str) -> Result<(), Error> {
-        let request = DeleteUploadSessionRequest { id: session_id, uri };
+    pub async fn delete_upload_session(&self, path: &str, session_id: &str) -> Result<(), Error> {
+        let uri = path_to_uri(path);
+        let request = DeleteUploadSessionRequest { id: session_id, uri: &uri };
         let url = self.get_url("/file/upload");
 
         let body = serde_json::to_string(&request)?;
@@ -213,10 +216,11 @@ impl ApiV4Client {
 
     pub async fn get_thumbnail_url(
         &self,
-        uri: &str,
+        path: &str,
         width: Option<u32>,
         height: Option<u32>,
     ) -> Result<String, Error> {
+        let uri = path_to_uri(path);
         let mut url = format!("/file/thumb?uri={}", uri);
         if let Some(w) = width {
             url.push_str(&format!("&width={}", w));
@@ -235,7 +239,8 @@ impl ApiV4Client {
         }
     }
 
-    pub async fn get_file_content(&self, uri: &str) -> Result<String, Error> {
+    pub async fn get_file_content(&self, path: &str) -> Result<String, Error> {
+        let uri = path_to_uri(path);
         let response: ApiResponse<String> = self.get(&format!("/file/content?uri={}", uri)).await?;
         match response.data {
             Some(data) => Ok(data),
@@ -294,7 +299,21 @@ impl ApiV4Client {
         &self,
         request: &CreateDownloadUrlRequest<'_>,
     ) -> Result<DownloadUrlResponse, Error> {
-        let response: ApiResponse<DownloadUrlResponse> = self.post("/file/url", request).await?;
+        let uris = paths_to_uris(&request.uris);
+        let uris_refs: Vec<&str> = uris.iter().map(|s| s.as_str()).collect();
+
+        let converted_request = CreateDownloadUrlRequest {
+            uris: uris_refs,
+            download: request.download,
+            redirect: request.redirect,
+            entity: request.entity,
+            use_primary_site_url: request.use_primary_site_url,
+            skip_error: request.skip_error,
+            archive: request.archive,
+            no_cache: request.no_cache,
+        };
+
+        let response: ApiResponse<DownloadUrlResponse> = self.post("/file/url", &converted_request).await?;
         match response.data {
             Some(data) => Ok(data),
             None => Err(Error::InvalidResponse(format!(
@@ -305,20 +324,29 @@ impl ApiV4Client {
     }
 
     pub async fn restore_from_trash(&self, request: &RestoreFileRequest<'_>) -> Result<(), Error> {
-        let _: ApiResponse<()> = self.post("/file/restore", request).await?;
+        let uris = paths_to_uris(&request.uris);
+        let uris_refs: Vec<&str> = uris.iter().map(|s| s.as_str()).collect();
+
+        let converted_request = RestoreFileRequest {
+            uris: uris_refs,
+        };
+
+        let _: ApiResponse<()> = self.post("/file/restore", &converted_request).await?;
         Ok(())
     }
 
-    pub async fn force_unlock(&self, uri: &str) -> Result<(), Error> {
+    pub async fn force_unlock(&self, path: &str) -> Result<(), Error> {
+        let uri = path_to_uri(path);
         let _: ApiResponse<()> = self.delete(&format!("/file/lock?uri={}", uri)).await?;
         Ok(())
     }
 
     pub async fn patch_metadata(
         &self,
-        uri: &str,
+        path: &str,
         request: &UpdateMetadataRequest,
     ) -> Result<(), Error> {
+        let uri = path_to_uri(path);
         let full_url = format!("/file/metadata?uri={}", uri);
         let _: ApiResponse<()> = self.patch(&full_url, request).await?;
         Ok(())
@@ -326,9 +354,10 @@ impl ApiV4Client {
 
     pub async fn mount_storage_policy(
         &self,
-        uri: &str,
+        path: &str,
         request: &MountStoragePolicyRequest,
     ) -> Result<(), Error> {
+        let uri = path_to_uri(path);
         let full_url = format!("/file/policy?uri={}", uri);
         let _: ApiResponse<()> = self.patch(&full_url, request).await?;
         Ok(())
@@ -336,9 +365,10 @@ impl ApiV4Client {
 
     pub async fn update_view_settings(
         &self,
-        uri: &str,
+        path: &str,
         request: &UpdateViewRequest,
     ) -> Result<(), Error> {
+        let uri = path_to_uri(path);
         let full_url = format!("/file/view?uri={}", uri);
         let _: ApiResponse<()> = self.patch(&full_url, request).await?;
         Ok(())
@@ -346,10 +376,11 @@ impl ApiV4Client {
 
     pub async fn get_file_activities(
         &self,
-        uri: &str,
+        path: &str,
         page: Option<u32>,
         page_size: Option<u32>,
     ) -> Result<FileActivitiesResponse, Error> {
+        let uri = path_to_uri(path);
         let mut url = format!("/file/activities?uri={}", uri);
         if let Some(p) = page {
             url.push_str(&format!("&page={}", p));
@@ -372,7 +403,8 @@ impl ApiV4Client {
         &self,
         request: &GetFileInfoRequest<'_>,
     ) -> Result<File, Error> {
-        let mut url = format!("/file/info?uri={}", request.uri);
+        let uri = path_to_uri(request.uri);
+        let mut url = format!("/file/info?uri={}", uri);
         if let Some(include_extended) = request.include_extended_info {
             url.push_str(&format!("&extended={}", include_extended));
         }
@@ -391,7 +423,8 @@ impl ApiV4Client {
         &self,
         request: &GetArchiveListRequest<'_>,
     ) -> Result<ArchiveListResponse, Error> {
-        let url = format!("/file/archive?uri={}", request.uri);
+        let uri = path_to_uri(request.uri);
+        let url = format!("/file/archive?uri={}", uri);
 
         let response: ApiResponse<ArchiveListResponse> = self.get(&url).await?;
         match response.data {

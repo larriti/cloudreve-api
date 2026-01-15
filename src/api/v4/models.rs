@@ -941,6 +941,12 @@ pub struct UpdateUserSettingRequest<'a> {
 
 #[derive(Debug, Serialize)]
 pub struct SetFilePermissionRequest<'a> {
+    /// File path (will be converted to URI format internally)
+    ///
+    /// Can be:
+    /// - Absolute path: "/folder/file.txt"
+    /// - Relative path: "folder/file.txt"
+    /// - Already formatted URI: "cloudreve://my/folder/file.txt"
     pub uri: &'a str,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub user_explicit: Option<serde_json::Value>,
@@ -958,7 +964,12 @@ pub struct SetFilePermissionRequest<'a> {
 
 #[derive(Debug, Serialize)]
 pub struct CreateUploadSessionRequest<'a> {
-    /// URI of the target file, e.g. "cloudreve://my/folder/file.txt"
+    /// Target file path (will be converted to URI format internally)
+    ///
+    /// Can be:
+    /// - Absolute path: "/folder/file.txt"
+    /// - Relative path: "folder/file.txt"
+    /// - Already formatted URI: "cloudreve://my/folder/file.txt"
     pub uri: &'a str,
     /// Size of the file in bytes
     pub size: u64,
@@ -1012,7 +1023,12 @@ impl UploadSessionResponse {
 pub struct DeleteUploadSessionRequest<'a> {
     /// ID of the upload session
     pub id: &'a str,
-    /// URI of the target placeholder file
+    /// Target file path (will be converted to URI format internally)
+    ///
+    /// Can be:
+    /// - Absolute path: "/folder/file.txt"
+    /// - Relative path: "folder/file.txt"
+    /// - Already formatted URI: "cloudreve://my/folder/file.txt"
     pub uri: &'a str,
 }
 
@@ -1026,12 +1042,24 @@ pub struct MoveCopyFileRequest<'a> {
 
 #[derive(Debug, Serialize)]
 pub struct UpdateFileContentRequest<'a> {
+    /// File path (will be converted to URI format internally)
+    ///
+    /// Can be:
+    /// - Absolute path: "/folder/file.txt"
+    /// - Relative path: "folder/file.txt"
+    /// - Already formatted URI: "cloudreve://my/folder/file.txt"
     pub uri: &'a str,
     pub content: &'a str,
 }
 
 #[derive(Debug, Serialize)]
 pub struct CreateViewerSessionRequest<'a> {
+    /// File path (will be converted to URI format internally)
+    ///
+    /// Can be:
+    /// - Absolute path: "/folder/file.txt"
+    /// - Relative path: "folder/file.txt"
+    /// - Already formatted URI: "cloudreve://my/folder/file.txt"
     pub uri: &'a str,
 }
 
@@ -1058,6 +1086,12 @@ pub struct RenameMultipleRequest<'a> {
 
 #[derive(Debug, Serialize)]
 pub struct CreateDownloadUrlRequest<'a> {
+    /// List of file paths (will be converted to URI format internally)
+    ///
+    /// Each path can be:
+    /// - Absolute path: "/folder/file.txt"
+    /// - Relative path: "folder/file.txt"
+    /// - Already formatted URI: "cloudreve://my/folder/file.txt"
     pub uris: Vec<&'a str>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub download: Option<bool>,
@@ -1090,6 +1124,12 @@ pub struct DownloadUrlItem {
 
 #[derive(Debug, Serialize)]
 pub struct RestoreFileRequest<'a> {
+    /// List of file paths to restore (will be converted to URI format internally)
+    ///
+    /// Each path can be:
+    /// - Absolute path: "/folder/file.txt"
+    /// - Relative path: "folder/file.txt"
+    /// - Already formatted URI: "cloudreve://my/folder/file.txt"
     pub uris: Vec<&'a str>,
 }
 
@@ -1126,6 +1166,12 @@ pub struct UpdateViewRequest {
 
 #[derive(Debug, Serialize)]
 pub struct GetFileInfoRequest<'a> {
+    /// File path (will be converted to URI format internally)
+    ///
+    /// Can be:
+    /// - Absolute path: "/folder/file.txt"
+    /// - Relative path: "folder/file.txt"
+    /// - Already formatted URI: "cloudreve://my/folder/file.txt"
     pub uri: &'a str,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub include_extended_info: Option<bool>,
@@ -1133,6 +1179,12 @@ pub struct GetFileInfoRequest<'a> {
 
 #[derive(Debug, Serialize)]
 pub struct GetArchiveListRequest<'a> {
+    /// File path (will be converted to URI format internally)
+    ///
+    /// Can be:
+    /// - Absolute path: "/folder/file.txt"
+    /// - Relative path: "folder/file.txt"
+    /// - Already formatted URI: "cloudreve://my/folder/file.txt"
     pub uri: &'a str,
 }
 

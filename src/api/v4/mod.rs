@@ -8,6 +8,8 @@ use serde::Serialize;
 pub mod file;
 /// Common data models for v4 API
 pub mod models;
+/// URI handling utilities for v4 API
+pub mod uri;
 /// Session management methods for v4 API
 pub mod session;
 /// Share management methods for v4 API
