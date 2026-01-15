@@ -8,9 +8,14 @@ impl ApiV4Client {
     pub async fn create_share_link(
         &self,
         request: &CreateShareLinkRequest,
-    ) -> Result<ShareLink, Error> {
-        let response: ApiResponse<ShareLink> = self.put("/share", request).await?;
-        Ok(response.data.unwrap())
+    ) -> Result<String, Error> {
+        let response: ApiResponse<String> = self.put("/share", request).await?;
+        response.data.ok_or_else(|| {
+            Error::InvalidResponse(format!(
+                "API returned error: code={}, msg={}",
+                response.code, response.msg
+            ))
+        })
     }
 
     pub async fn list_my_share_links_with_params(
@@ -53,7 +58,11 @@ impl ApiV4Client {
 
             Ok((shares, next_token))
         } else {
-            Ok((vec![], None))
+            // Return error if API returned an error response
+            Err(Error::InvalidResponse(format!(
+                "API returned error: code={}, msg={}",
+                response.code, response.msg
+            )))
         }
     }
 
@@ -71,7 +80,12 @@ impl ApiV4Client {
     ) -> Result<ShareLink, Error> {
         let response: ApiResponse<ShareLink> =
             self.post(&format!("/share/{}", share_id), request).await?;
-        Ok(response.data.unwrap())
+        response.data.ok_or_else(|| {
+            Error::InvalidResponse(format!(
+                "API returned error: code={}, msg={}",
+                response.code, response.msg
+            ))
+        })
     }
 
     pub async fn delete_share_link(&self, share_id: &str) -> Result<(), Error> {

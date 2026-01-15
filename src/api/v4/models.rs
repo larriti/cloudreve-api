@@ -63,7 +63,9 @@ pub struct ShareLink {
     pub id: String,
     pub name: String,
     pub visited: i64,
+    #[serde(default)]
     pub downloaded: i64,
+    #[serde(default)]
     pub price: i64,
     pub unlocked: bool,
     pub source_type: ShareSourceType,
@@ -71,7 +73,8 @@ pub struct ShareLink {
     pub created_at: String,
     pub expired: bool,
     pub url: String,
-    pub permission_setting: PermissionSetting,
+    #[serde(default)]
+    pub permission_setting: Option<PermissionSetting>,
     #[serde(rename = "is_private")]
     pub is_private: Option<bool>,
     pub password: Option<String>,
@@ -81,6 +84,7 @@ pub struct ShareLink {
     pub password_protected: Option<bool>,
     pub expires: Option<String>,
     pub expired_at: Option<String>,
+    #[serde(default)]
     pub download_count: u64,
 }
 
@@ -293,14 +297,23 @@ pub struct NewUser {
     pub email: Option<String>,
     pub nickname: Option<String>,
     pub created_at: String,
+    #[serde(default)]
     pub anonymous: Option<bool>,
-    pub group: NewGroup,
+    #[serde(default)]
+    pub group: Option<NewGroup>,
+    #[serde(default)]
     pub status: Option<UserStatus>,
+    #[serde(default)]
     pub avatar: Option<AvatarType>,
+    #[serde(default)]
     pub preferred_theme: Option<String>,
+    #[serde(default)]
     pub credit: Option<i64>,
-    pub language: String,
+    #[serde(default)]
+    pub language: Option<String>,
+    #[serde(default)]
     pub disable_view_sync: Option<String>,
+    #[serde(default)]
     pub share_links_in_profile: Option<ShareLinkVisibility>,
 }
 
@@ -419,7 +432,7 @@ pub struct ExtendedInfo {
     pub storage_policy: Option<NewStoragePolicy>,
     pub storage_policy_inherited: bool,
     pub storage_used: i64,
-    pub shares: Option<Vec<NewShare>>,
+    pub shares: Option<Vec<ShareLink>>,
     pub entities: Option<Vec<NewEntity>>,
     pub permissions: Option<PermissionSetting>,
     pub direct_links: Option<Vec<DirectLink>>,
@@ -468,34 +481,42 @@ pub enum StoragePolicyType {
     KS3,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct NewShare {
-    pub id: String,
-    pub name: String,
-    pub visited: i64,
-    pub downloaded: i64,
-    pub price: i64,
-    pub unlocked: bool,
-    pub source_type: ShareSourceType,
-    pub owner: NewUser,
-    pub created_at: String,
-    pub expired: bool,
-    pub url: String,
-    pub permission_setting: PermissionSetting,
-    pub is_private: Option<bool>,
-    pub password: Option<String>,
-    pub source_uri: String,
-    pub share_view: Option<bool>,
-    pub show_readme: Option<bool>,
-    pub password_protected: Option<bool>,
+#[derive(Debug, Serialize, Clone, PartialEq)]
+pub enum ShareSourceType {
+    File = 0,
+    Folder = 1,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub enum ShareSourceType {
-    #[serde(rename = "0")]
-    File = 0,
-    #[serde(rename = "1")]
-    Folder = 1,
+impl<'de> Deserialize<'de> for ShareSourceType {
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        use serde::de::Error;
+        use serde_json::Value;
+
+        // Deserialize as a JSON value first to check the type
+        let value = Value::deserialize(deserializer)?;
+        match value {
+            Value::Number(n) => {
+                if let Some(i) = n.as_i64() {
+                    match i {
+                        0 => Ok(ShareSourceType::File),
+                        1 => Ok(ShareSourceType::Folder),
+                        _ => Err(Error::custom(format!("Invalid ShareSourceType value: {}", i))),
+                    }
+                } else {
+                    Err(Error::custom(format!("Invalid ShareSourceType number: {}", n)))
+                }
+            }
+            Value::String(s) => match s.as_str() {
+                "0" => Ok(ShareSourceType::File),
+                "1" => Ok(ShareSourceType::Folder),
+                _ => Err(Error::custom(format!("Invalid ShareSourceType value: {}", s))),
+            },
+            _ => Err(Error::custom(format!("Invalid ShareSourceType type: {:?}", value))),
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
