@@ -5,41 +5,30 @@
 //!
 //! # Examples
 //!
-//! ## Using the unified client (recommended)
+//! ## Using CloudreveAPI (recommended)
 //!
 //! ```no_run
-//! use cloudreve_api::{CloudreveClient, Result};
+//! use cloudreve_api::{CloudreveAPI, Result};
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<()> {
 //!     // Auto-detect version
-//!     let client = CloudreveClient::new("https://your-cloudreve-instance.com").await?;
+//!     let mut api = CloudreveAPI::new("https://your-cloudreve-instance.com").await?;
 //!
-//!     // Get version information
-//!     let version = client.get_version().await?;
-//!     println!("API Version: {}", version.api_version);
+//!     // Login
+//!     api.login("user@example.com", "password").await?;
+//!
+//!     // List files
+//!     let files = api.list_files("/").await?;
+//!     println!("Found {} items", files.total_count());
 //!
 //!     Ok(())
-//! }
-//! ```
-//!
-//! ## Using version-specific clients
-//!
-//! ```no_run
-//! use cloudreve_api::{ApiV3Client, ApiV4Client_};
-//!
-//! #[tokio::main]
-//! async fn main() {
-//!     // V3 client
-//!     let v3_client = ApiV3Client::new("https://your-cloudreve-instance.com");
-//!
-//!     // V4 client
-//!     let v4_client = ApiV4Client_::new("https://your-cloudreve-instance.com");
 //! }
 //! ```
 
 pub mod api;
 pub mod client;
+pub mod cloudreve_api;
 pub mod error;
 
 pub use api::v3::models::{
@@ -50,11 +39,16 @@ pub use api::v3::models::{
     UploadFileRequest, UploadSession, User, UserGroup, WebdavAccount,
 };
 pub use api::v4::models::*;
-// Main Cloudreve API client (V4, for backward compatibility)
+
+// Main Cloudreve API client
+pub use cloudreve_api::{
+    CloudreveAPI, DeleteTarget, FileItem, FileInfo, FileList, LoginResponse, TokenInfo,
+    V3LoginResponse, V4LoginResponse,
+};
+
+// Legacy exports for backward compatibility
 pub use api::v4::ApiV4Client as CloudreveClient;
-// Unified client with auto-detection (new)
 pub use client::UnifiedClient;
-pub use error::Error;
 
 // Re-export version-specific clients for advanced use cases
 pub use api::v3::ApiV3Client;
@@ -62,6 +56,9 @@ pub use api::v4::ApiV4Client as ApiV4Client_;
 
 // Re-export API version types
 pub use api::{ApiVersion, VersionInfo};
+
+// Re-export error type
+pub use error::Error;
 
 /// A result type alias for convenience
 pub type Result<T> = std::result::Result<T, Error>;

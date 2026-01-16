@@ -35,6 +35,10 @@ impl ApiV3Client {
         self.session_cookie = Some(cookie);
     }
 
+    pub fn get_session_cookie(&self) -> Option<&str> {
+        self.session_cookie.as_deref()
+    }
+
     pub fn get_url(&self, endpoint: &str) -> String {
         format!(
             "{}/api/v3/{}",
