@@ -17,28 +17,44 @@ pub struct User {
     pub id: String,
     pub user_name: String,
     pub nickname: String,
+    #[serde(default)]
     pub status: i32,
+    #[serde(default)]
     pub avatar: String,
     pub created_at: String,
+    #[serde(default)]
     pub preferred_theme: String,
+    #[serde(default)]
     pub anonymous: bool,
     pub group: UserGroup,
+    #[serde(default)]
     pub tags: Vec<String>,
 }
 
 /// User group information for v3 API
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct UserGroup {
+    #[serde(default)]
     pub id: i32,
+    #[serde(default)]
     pub name: String,
+    #[serde(default)]
     pub allow_share: bool,
+    #[serde(default)]
     pub allow_remote_download: bool,
+    #[serde(default)]
     pub allow_archive_download: bool,
+    #[serde(default)]
     pub share_download: bool,
+    #[serde(default)]
     pub compress: bool,
+    #[serde(default)]
     pub webdav: bool,
+    #[serde(default)]
     pub source_batch: i32,
+    #[serde(default)]
     pub advance_delete: bool,
+    #[serde(default)]
     pub allow_web_dav_proxy: bool,
 }
 
@@ -58,14 +74,19 @@ pub struct Object {
 }
 
 /// Storage policy information for v3 API
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct Policy {
+    #[serde(default)]
     pub id: String,
+    #[serde(default)]
     pub name: String,
     #[serde(rename = "type")]
+    #[serde(default)]
     pub policy_type: String,
+    #[serde(default)]
     pub max_size: i64,
-    pub file_type: Vec<String>,
+    #[serde(default)]
+    pub file_type: Option<Vec<String>>,
 }
 
 /// File or folder property for v3 API
@@ -84,8 +105,11 @@ pub struct Property {
 /// Directory listing response for v3 API
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DirectoryList {
+    #[serde(default)]
     pub parent: String,
+    #[serde(default)]
     pub objects: Vec<Object>,
+    #[serde(default)]
     pub policy: Policy,
 }
 
