@@ -23,7 +23,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-cloudreve-api = "0.2"
+cloudreve-api = "0.3"
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -38,17 +38,17 @@ cargo add cloudreve-api
 ### Basic Setup
 
 ```rust
-use cloudreve_api::CloudreveClient;
+use cloudreve_api::{CloudreveAPI, Result};
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Create a client instance
-    let client = CloudreveClient::new("https://your-cloudreve-instance.com");
+async fn main() -> Result<()> {
+    // Create a client instance (auto-detects API version)
+    let mut api = CloudreveAPI::new("https://your-cloudreve-instance.com").await?;
 
     // Login
-    let token = client.login("user@example.com", "password123").await?;
+    api.login("user@example.com", "password").await?;
 
-    println!("Access token: {}", token.access_token);
+    println!("Successfully logged in!");
     Ok(())
 }
 ```
@@ -56,30 +56,43 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 ### File Operations
 
 ```rust
-use cloudreve_api::CloudreveClient;
-use cloudreve_api::api::v4::models::ListFilesRequest;
+use cloudreve_api::{CloudreveAPI, Result};
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let client = CloudreveClient::new("https://your-cloudreve-instance.com");
-    let token = client.login("user@example.com", "password123").await?;
-    client.set_token(&token.access_token);
+async fn main() -> Result<()> {
+    let mut api = CloudreveAPI::new("https://your-cloudreve-instance.com").await?;
+    api.login("user@example.com", "password").await?;
 
     // List files in a directory
-    let request = ListFilesRequest {
-        path: "/",
-        page: Some(0),
-        page_size: Some(50),
-        ..Default::default()
-    };
+    let files = api.list_files("/").await?;
+    println!("Found {} items", files.total_count());
 
-    let response = client.list_files(&request).await?;
-    println!("Found {} files", response.files.len());
-
-    for file in response.files {
-        println!("  - {} ({} bytes)", file.name, file.size);
+    for item in files.items() {
+        if item.is_folder {
+            println!("  📁 {}/", item.name);
+        } else {
+            println!("  📄 {} ({} bytes)", item.name, item.size);
+        }
     }
 
+    Ok(())
+}
+```
+
+### Create Directory
+
+```rust
+use cloudreve_api::{CloudreveAPI, Result};
+
+#[tokio::main]
+async fn main() -> Result<()> {
+    let mut api = CloudreveAPI::new("https://your-cloudreve-instance.com").await?;
+    api.login("user@example.com", "password").await?;
+
+    // Create a new directory
+    api.create_directory("/photos/vacation").await?;
+
+    println!("Directory created successfully!");
     Ok(())
 }
 ```
@@ -87,29 +100,55 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 ### Upload a File
 
 ```rust
-use cloudreve_api::CloudreveClient;
-use cloudreve_api::api::v4::models::CreateUploadSessionRequest;
+use cloudreve_api::{CloudreveAPI, Result};
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let client = CloudreveClient::new("https://your-cloudreve-instance.com");
-    let token = client.login("user@example.com", "password123").await?;
-    client.set_token(&token.access_token);
+async fn main() -> Result<()> {
+    let mut api = CloudreveAPI::new("https://your-cloudreve-instance.com").await?;
+    api.login("user@example.com", "password").await?;
 
-    // Create an upload session
-    let upload_request = CreateUploadSessionRequest {
-        uri: "cloudreve://my/uploads/file.txt",
-        size: 1024,
-        policy_id: "1",
-        ..Default::default()
-    };
+    // Upload a file
+    let content = b"Hello, World!".to_vec();
+    api.upload_file("/hello.txt", content, None).await?;
 
-    let session = client.create_upload_session(&upload_request).await?;
-    println!("Upload session ID: {}", session.session_id);
+    println!("File uploaded successfully!");
+    Ok(())
+}
+```
 
-    // Upload file chunks
-    let chunk_data = vec![0u8; 1024];
-    client.upload_file_chunk(&session.session_id, 0, &chunk_data).await?;
+### Download a File
+
+```rust
+use cloudreve_api::{CloudreveAPI, Result};
+
+#[tokio::main]
+async fn main() -> Result<()> {
+    let mut api = CloudreveAPI::new("https://your-cloudreve-instance.com").await?;
+    api.login("user@example.com", "password").await?;
+
+    // Get download URL
+    let url = api.download_file("/document.pdf").await?;
+    println!("Download URL: {}", url);
+
+    Ok(())
+}
+```
+
+### Share Management
+
+```rust
+use cloudreve_api::{CloudreveAPI, Result};
+
+#[tokio::main]
+async fn main() -> Result<()> {
+    let mut api = CloudreveAPI::new("https://your-cloudreve-instance.com").await?;
+    api.login("user@example.com", "password").await?;
+
+    // List shares
+    let shares = api.list_shares().await?;
+    for share in shares {
+        println!("Share key: {}", share.key);
+    }
 
     Ok(())
 }
@@ -132,7 +171,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 - **File Operations**
   - List files/directories
-  - Upload (chunked upload support)
+  - Upload (with chunked support)
   - Download
   - Create directory
   - Rename
@@ -140,7 +179,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
   - Copy
   - Delete
   - Get file info
-  - File metadata
 
 - **Sharing**
   - Create share links
@@ -152,20 +190,40 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
   - File search
   - Thumbnail generation
   - Archive operations
+  - WebDAV account management
+
+## API Versions
+
+This library supports both Cloudreve v3 and v4 APIs with automatic version detection:
+
+```rust
+use cloudreve_api::{CloudreveAPI, ApiVersion, Result};
+
+#[tokio::main]
+async fn main() -> Result<()> {
+    // Auto-detect version
+    let api = CloudreveAPI::new("https://instance.com").await?;
+
+    // Or specify version explicitly
+    let api = CloudreveAPI::with_version("https://instance.com", ApiVersion::V4)?;
+
+    Ok(())
+}
+```
 
 ## Error Handling
 
 All API calls return a `Result<T, Error>` type:
 
 ```rust
-use cloudreve_api::{CloudreveClient, Error};
+use cloudreve_api::{CloudreveAPI, Error};
 
 #[tokio::main]
 async fn main() {
-    let client = CloudreveClient::new("https://your-cloudreve-instance.com");
+    let mut api = CloudreveAPI::new("https://your-cloudreve-instance.com").await.unwrap();
 
-    match client.login("user@example.com", "wrong_password").await {
-        Ok(token) => println!("Token: {}", token.access_token),
+    match api.login("user@example.com", "wrong_password").await {
+        Ok(_) => println!("Login successful"),
         Err(Error::Api { code, message }) => {
             eprintln!("API Error {}: {}", code, message);
         }
@@ -186,22 +244,7 @@ async fn main() {
 - `Error::Api` - API error responses with code and message
 - `Error::Reqwest` - Underlying reqwest errors
 - `Error::Url` - URL parsing errors
-
-## API Versions
-
-This library supports both Cloudreve v3 and v4 APIs:
-
-```rust
-use cloudreve_api::api::{v3, v4};
-
-// Use v3 API
-let v3_client = CloudreveClient::new("https://instance.com");
-v3_client.v3_get_site_policy().await?;
-
-// Use v4 API
-let v4_client = CloudreveClient::new("https://instance.com");
-v4_client.v4_get_user_capacity().await?;
-```
+- `Error::InvalidResponse` - Invalid API response format
 
 ## License
 
