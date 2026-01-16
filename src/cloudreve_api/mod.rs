@@ -93,4 +93,14 @@ impl CloudreveAPI {
     pub fn inner_mut(&mut self) -> &mut UnifiedClient {
         &mut self.inner
     }
+
+    /// Get the server version
+    ///
+    /// Returns the Cloudreve server version by pinging the /site/ping endpoint.
+    pub async fn get_server_version(&self) -> Result<String, Error> {
+        match &self.inner {
+            UnifiedClient::V3(client) => client.ping().await,
+            UnifiedClient::V4(client) => client.ping().await,
+        }
+    }
 }

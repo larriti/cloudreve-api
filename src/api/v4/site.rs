@@ -9,16 +9,24 @@ use crate::VERSION;
 impl ApiV4Client {
     /// Get API version information
     pub async fn get_version(&self) -> Result<VersionInfo, Error> {
+        let server_version = self.ping().await.unwrap_or_else(|_| "unknown".to_string());
         Ok(VersionInfo {
             api_version: "v4".to_string(),
             library_version: VERSION.to_string(),
-            server_version: "unknown".to_string(),
+            server_version,
         })
     }
 
+    /// Ping the server and get server version
     pub async fn ping(&self) -> Result<String, Error> {
         let response: crate::ApiResponse<String> = self.get("/site/ping").await?;
-        Ok(response.msg)
+        match response.data {
+            Some(version) => Ok(version),
+            None => Err(crate::Error::Api {
+                code: response.code,
+                message: response.msg,
+            }),
+        }
     }
 
     pub async fn get_site_config(&self, section: &str) -> Result<SiteConfig, Error> {

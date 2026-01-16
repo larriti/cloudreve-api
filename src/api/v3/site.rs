@@ -31,18 +31,25 @@ impl ApiV3Client {
         }
     }
 
-    /// Ping the server
+    /// Ping the server and get server version
     pub async fn ping(&self) -> Result<String, Error> {
         let response: ApiResponse<String> = self.get("/site/ping").await?;
-        Ok(response.msg)
+        match response.data {
+            Some(version) => Ok(version),
+            None => Err(Error::Api {
+                code: response.code,
+                message: response.msg,
+            }),
+        }
     }
 
     /// Get API version information
     pub async fn get_version(&self) -> Result<VersionInfo, Error> {
+        let server_version = self.ping().await.unwrap_or_else(|_| "unknown".to_string());
         Ok(VersionInfo {
             api_version: "v3".to_string(),
             library_version: VERSION.to_string(),
-            server_version: "unknown".to_string(),
+            server_version,
         })
     }
 
