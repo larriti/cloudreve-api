@@ -3,6 +3,7 @@
 use crate::api::v3::models::*;
 use crate::api::v3::ApiV3Client;
 use crate::Error;
+use log::debug;
 
 impl ApiV3Client {
     /// Login with email and password
@@ -16,17 +17,29 @@ impl ApiV3Client {
 
         let response = http_request.send().await?;
 
-        if let Some(set_cookie) = response.headers().get("Set-Cookie") {
-            if let Ok(cookie_str) = set_cookie.to_str() {
-                for cookie in cookie_str.split(';').map(|s| s.trim()) {
-                    if cookie.starts_with("cloudreve-session=") {
-                        let session_value = cookie.trim_start_matches("cloudreve-session=");
-                        self.session_cookie = Some(session_value.to_string());
-                        break;
+        // Extract session cookie from Set-Cookie headers
+        // V3 uses Set-Cookie headers to set the session cookie
+        let cookie_headers = response.headers().get_all("Set-Cookie");
+        for cookie_header in cookie_headers {
+            if let Ok(cookie_str) = cookie_header.to_str() {
+                // Check if this Set-Cookie header contains cloudreve-session
+                if cookie_str.contains("cloudreve-session=") {
+                    // Parse the cookie value
+                    // Format: "cloudreve-session=VALUE; Path=/; HttpOnly" etc.
+                    for part in cookie_str.split(';') {
+                        let part = part.trim();
+                        if part.starts_with("cloudreve-session=") {
+                            let session_value = part.trim_start_matches("cloudreve-session=");
+                            self.session_cookie = Some(session_value.to_string());
+                            debug!("Extracted V3 session cookie: {}...", &session_value[..session_value.len().min(20)]);
+                            break;
+                        }
                     }
                 }
             }
         }
+
+        debug!("V3 session_cookie after login: {:?}", self.session_cookie);
 
         let _status = response.status();
         let api_response: ApiResponse<User> = response.json().await?;
@@ -51,13 +64,19 @@ impl ApiV3Client {
 
         let response = http_request.send().await?;
 
-        if let Some(set_cookie) = response.headers().get("Set-Cookie") {
-            if let Ok(cookie_str) = set_cookie.to_str() {
-                for cookie in cookie_str.split(';').map(|s| s.trim()) {
-                    if cookie.starts_with("cloudreve-session=") {
-                        let session_value = cookie.trim_start_matches("cloudreve-session=");
-                        self.session_cookie = Some(session_value.to_string());
-                        break;
+        // Extract session cookie from Set-Cookie headers
+        let cookie_headers = response.headers().get_all("Set-Cookie");
+        for cookie_header in cookie_headers {
+            if let Ok(cookie_str) = cookie_header.to_str() {
+                if cookie_str.contains("cloudreve-session=") {
+                    for part in cookie_str.split(';') {
+                        let part = part.trim();
+                        if part.starts_with("cloudreve-session=") {
+                            let session_value = part.trim_start_matches("cloudreve-session=");
+                            self.session_cookie = Some(session_value.to_string());
+                            debug!("Extracted V3 session cookie (2FA): {}...", &session_value[..session_value.len().min(20)]);
+                            break;
+                        }
                     }
                 }
             }

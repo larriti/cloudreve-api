@@ -34,4 +34,8 @@ pub enum Error {
     /// Invalid timestamp error
     #[error("Invalid timestamp: {0}")]
     InvalidTimestamp(String),
+
+    /// Feature not supported in API version
+    #[error("Feature '{0}' not supported in API {1}")]
+    UnsupportedFeature(String, String),
 }
