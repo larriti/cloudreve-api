@@ -39,6 +39,10 @@ impl ApiV3Client {
         self.session_cookie.as_deref()
     }
 
+    pub fn clear_session_cookie(&mut self) {
+        self.session_cookie = None;
+    }
+
     pub fn get_url(&self, endpoint: &str) -> String {
         format!(
             "{}/api/v3/{}",
@@ -56,6 +60,7 @@ impl ApiV3Client {
 
         if let Some(cookie) = &self.session_cookie {
             request = request.header("Cookie", format!("cloudreve-session={}", cookie));
+            debug!("cookie: {}", cookie);
         }
 
         debug!("GET URL: {}", url);
@@ -76,6 +81,7 @@ impl ApiV3Client {
 
         if let Some(cookie) = &self.session_cookie {
             request = request.header("Cookie", format!("cloudreve-session={}", cookie));
+            debug!("cookie: {}", cookie);
         }
 
         debug!("POST URL: {}", url);
@@ -96,6 +102,7 @@ impl ApiV3Client {
 
         if let Some(cookie) = &self.session_cookie {
             request = request.header("Cookie", format!("cloudreve-session={}", cookie));
+            debug!("cookie: {}", cookie);
         }
 
         debug!("PUT URL: {}", url);
@@ -116,6 +123,7 @@ impl ApiV3Client {
 
         if let Some(cookie) = &self.session_cookie {
             request = request.header("Cookie", format!("cloudreve-session={}", cookie));
+            debug!("cookie: {}", cookie);
         }
 
         debug!("PATCH URL: {}", url);
@@ -136,6 +144,7 @@ impl ApiV3Client {
 
         if let Some(cookie) = &self.session_cookie {
             request = request.header("Cookie", format!("cloudreve-session={}", cookie));
+            debug!("cookie: {}", cookie);
         }
 
         debug!("DELETE URL: {}", url);
@@ -160,6 +169,7 @@ impl ApiV3Client {
 
         if let Some(cookie) = &self.session_cookie {
             request = request.header("Cookie", format!("cloudreve-session={}", cookie));
+            debug!("cookie: {}", cookie);
         }
 
         debug!("DELETE WITH BODY URL: {}", url);

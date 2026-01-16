@@ -22,6 +22,7 @@ impl super::CloudreveAPI {
                     password: password,
                     captcha_code: "",
                 };
+                client.clear_session_cookie();
                 let user = client.login(&request).await?;
                 debug!("V3 login successful for user: {}", user.nickname);
                 Ok(LoginResponse::V3(V3LoginResponse { user }))
