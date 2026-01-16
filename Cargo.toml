@@ -5,7 +5,7 @@ edition.workspace = true
 description = "A Rust library for interacting with Cloudreve API"
 license.workspace = true
 authors.workspace = true
-repository.workspace = true
+repository = "https://github.com/larriti/cloudreve-api"
 keywords = ["cloudreve", "api", "storage", "client"]
 categories = ["api-bindings", "web-programming::http-client"]
 
