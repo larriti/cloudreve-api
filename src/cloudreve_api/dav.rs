@@ -35,9 +35,9 @@ impl super::CloudreveAPI {
                 let dav_accounts = accounts.into_iter().map(|acc| DavAccount {
                     id: acc.id.to_string(),
                     name: acc.name,
-                    uri: None,
-                    server: Some(acc.server),
-                    password: None,
+                    uri: Some(acc.uri),
+                    server: None,
+                    password: Some(acc.password),
                     created_at: acc.created_at,
                 }).collect();
                 Ok(DavListResponse { accounts: dav_accounts })

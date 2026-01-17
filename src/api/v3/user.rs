@@ -3,13 +3,19 @@
 use crate::api::v3::models::*;
 use crate::api::v3::ApiV3Client;
 use crate::Error;
+use serde::Deserialize;
+
+#[derive(Debug, Deserialize)]
+struct WebdavListWrapper {
+    accounts: Vec<WebdavAccount>,
+}
 
 impl ApiV3Client {
     /// Get WebDAV accounts
     pub async fn get_webdav_accounts(&self) -> Result<Vec<WebdavAccount>, Error> {
-        let response: ApiResponse<Vec<WebdavAccount>> = self.get("/webdav/accounts").await?;
+        let response: ApiResponse<WebdavListWrapper> = self.get("/webdav/accounts").await?;
         match response.data {
-            Some(accounts) => Ok(accounts),
+            Some(wrapper) => Ok(wrapper.accounts),
             None => Err(Error::Api {
                 code: response.code,
                 message: response.msg,

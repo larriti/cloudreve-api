@@ -298,8 +298,14 @@ pub struct Aria2CreateRequest<'a> {
 /// WebDAV account information for v3 API
 #[derive(Debug, Deserialize)]
 pub struct WebdavAccount {
+    #[serde(rename = "ID")]
     pub id: i32,
+    #[serde(rename = "Name")]
     pub name: String,
-    pub server: String,
+    #[serde(rename = "Root")]
+    pub uri: String,
+    #[serde(rename = "Password")]
+    pub password: String,
+    #[serde(rename = "CreatedAt")]
     pub created_at: String,
 }

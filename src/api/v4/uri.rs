@@ -61,7 +61,7 @@ pub fn uri_to_path(uri: &str) -> Result<&str, String> {
         ));
     }
 
-    let path = &uri[CLOUDREVE_URI_PREFIX.len()..];
+    let path = &uri[CLOUDREVE_URI_PREFIX.len()-1..];
     Ok(path)
 }
 
