@@ -180,4 +180,31 @@ impl ApiV3Client {
         debug!("Response status: {}, JSON: {:?}", status, json);
         Ok(json)
     }
+
+    /// PUT request that returns raw text response instead of JSON
+    pub async fn put_text(&self, endpoint: &str, body: &impl Serialize) -> Result<String, Error> {
+        let url = self.get_url(endpoint);
+        let mut request = self.http_client.put(&url).json(body);
+
+        if let Some(cookie) = &self.session_cookie {
+            request = request.header("Cookie", format!("cloudreve-session={}", cookie));
+            debug!("cookie: {}", cookie);
+        }
+
+        debug!("PUT TEXT URL: {}", url);
+
+        let response = request.send().await?;
+        let status = response.status();
+        let text = response.text().await?;
+        debug!("Response status: {}, Text: {:?}", status, text);
+
+        if !status.is_success() {
+            return Err(Error::Api {
+                code: status.as_u16() as i32,
+                message: text,
+            });
+        }
+
+        Ok(text)
+    }
 }

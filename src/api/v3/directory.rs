@@ -7,7 +7,13 @@ use crate::Error;
 impl ApiV3Client {
     /// List directory contents
     pub async fn list_directory(&self, path: &str) -> Result<DirectoryList, Error> {
-        let encoded_path = urlencoding::encode(path);
+        // Normalize path: remove trailing slash unless it's the root directory
+        let normalized_path = if path.ends_with('/') && path != "/" {
+            &path[..path.len() - 1]
+        } else {
+            path
+        };
+        let encoded_path = urlencoding::encode(normalized_path);
         let response: ApiResponse<DirectoryList> =
             self.get(&format!("/directory{}", encoded_path)).await?;
         match response.data {

@@ -8,6 +8,7 @@
 //! - `file`: File operations (list, create, delete, rename, move, copy)
 //! - `share`: Share link operations
 //! - `download`: Download URL operations
+//! - `dav`: WebDAV account operations
 
 use crate::client::UnifiedClient;
 use crate::api::ApiVersion;
@@ -19,6 +20,7 @@ pub use auth::{LoginResponse, TokenInfo, V3LoginResponse, V4LoginResponse};
 pub use file::{DeleteTarget, FileInfo, FileItem, FileList};
 pub use user::{StorageQuota, UserInfo};
 pub use share::{ShareItem, ShareUpdateProps};
+pub use dav::{DavAccount, DavListResponse};
 
 // Submodules
 pub mod auth;
@@ -26,6 +28,7 @@ pub mod file;
 pub mod share;
 pub mod download;
 pub mod user;
+pub mod dav;
 
 /// Unified Cloudreve API client
 ///

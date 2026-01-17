@@ -32,9 +32,9 @@ impl ApiV4Client {
     pub async fn list_files(&self, request: &ListFilesRequest<'_>) -> Result<ListResponse, Error> {
         let mut url = "/file".to_string();
         if let Some(path) = request.path.strip_prefix('/') {
-            url.push_str(&format!("?uri=cloudreve://my/{}", path));
+            url.push_str(&format!("?uri={}", path_to_uri(path)));
         } else {
-            url.push_str(&format!("?uri=cloudreve://my/{}", request.path));
+            url.push_str(&format!("?uri={}", path_to_uri(request.path)));
         }
         if let Some(page) = request.page {
             url.push_str(&format!("&page={}", page));

@@ -116,10 +116,11 @@ pub struct DirectoryList {
 /// Upload session information for v3 API
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UploadSession {
+    #[serde(rename = "sessionID")]
     pub session_id: String,
+    #[serde(rename = "chunkSize")]
     pub chunk_size: i64,
-    pub expires: i64,
-    pub upload_urls: Vec<String>,
+    pub expires: i64
 }
 
 /// Upload file request for v3 API

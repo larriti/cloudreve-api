@@ -31,12 +31,20 @@ impl super::CloudreveAPI {
         debug!("Getting user info");
 
         match &self.inner {
-            UnifiedClient::V3(_client) => {
-                // V3: No dedicated user info endpoint
-                // Return placeholder - actual user info should come from login response
-                Err(Error::InvalidResponse(
-                    "User info not directly available in V3 API".to_string()
-                ))
+            UnifiedClient::V3(client) => {
+                // V3: Get user info from site config
+                let config = client.get_site_config().await?;
+                if let Some(user) = config.user {
+                    Ok(UserInfo {
+                        id: user.id,
+                        email: user.user_name,
+                        nickname: user.nickname,
+                        group: Some(user.group.name),
+                        status: Some(user.status.to_string()),
+                    })
+                } else {
+                    Err(Error::InvalidResponse("No user info in site config".to_string()))
+                }
             }
             UnifiedClient::V4(_client) => {
                 // V4: Use a placeholder - actual implementation would call user endpoint

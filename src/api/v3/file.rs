@@ -61,11 +61,12 @@ impl ApiV3Client {
     }
 
     pub async fn download_file(&self, id: &str) -> Result<DownloadUrl, Error> {
-        let response: ApiResponse<DownloadUrl> = self
+        // V3 returns ApiResponse with data as string (download URL path)
+        let response: ApiResponse<String> = self
             .put(&format!("/file/download/{}", id), &serde_json::json!({}))
             .await?;
         match response.data {
-            Some(url) => Ok(url),
+            Some(url_path) => Ok(DownloadUrl { url: url_path }),
             None => Err(Error::Api {
                 code: response.code,
                 message: response.msg,

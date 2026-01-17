@@ -1,5 +1,6 @@
 //! File operations for CloudreveAPI
 
+use crate::api::v4::uri::path_to_uri;
 use crate::client::UnifiedClient;
 use crate::api::v3::models as v3_models;
 use crate::api::v4::models as v4_models;
@@ -11,19 +12,20 @@ impl super::CloudreveAPI {
     /// List files in a directory
     ///
     /// Returns a unified file list regardless of API version.
-    pub async fn list_files(&self, path: &str) -> Result<FileList, Error> {
+    pub async fn list_files(&self, path: &str, page: Option<u32>, page_size: Option<u32>) -> Result<FileList, Error> {
         debug!("Listing files in: {}", path);
 
         match &self.inner {
             UnifiedClient::V3(client) => {
+                // V3 doesn't support pagination in list_directory
                 let dir_list = client.list_directory(path).await?;
                 Ok(FileList::V3(dir_list))
             }
             UnifiedClient::V4(client) => {
                 let request = v4_models::ListFilesRequest {
                     path,
-                    page: None,
-                    page_size: None,
+                    page,
+                    page_size,
                     order_by: None,
                     order_direction: None,
                     next_page_token: None,
@@ -102,13 +104,21 @@ impl super::CloudreveAPI {
             UnifiedClient::V3(client) => {
                 // V3: Use object property (requires ID) or get from directory listing
                 // For simplicity, list the parent directory and find the object
-                let parent_path = if path.ends_with('/') || path == "/" {
-                    path
+
+                // Normalize path: remove trailing slash unless it's the root directory
+                let normalized_path = if path.ends_with('/') && path != "/" {
+                    &path[..path.len() - 1]
                 } else {
-                    let pos = path.rfind('/');
+                    path
+                };
+
+                let parent_path = if normalized_path == "/" {
+                    "/"
+                } else {
+                    let pos = normalized_path.rfind('/');
                     match pos {
                         Some(0) => "/",
-                        Some(p) => &path[..p],
+                        Some(p) => &normalized_path[..p],
                         None => "/",
                     }
                 };
@@ -116,10 +126,10 @@ impl super::CloudreveAPI {
                 let dir_list = client.list_directory(parent_path).await?;
 
                 // Find the object by name
-                let file_name = if path.ends_with('/') || path == "/" {
+                let file_name = if normalized_path == "/" {
                     ""
                 } else {
-                    path.rsplit('/').next().unwrap_or("")
+                    normalized_path.rsplit('/').next().unwrap_or("")
                 };
 
                 for obj in &dir_list.objects {
@@ -258,12 +268,34 @@ impl super::CloudreveAPI {
 
         match &self.inner {
             UnifiedClient::V3(client) => {
-                // V3: Use upload session with chunking
+                // V3: Need to get policy_id if not provided
+                let final_policy_id = if let Some(pid) = policy_id {
+                    pid.to_string()
+                } else {
+                    // Get policy_id from parent directory listing
+                    // For V3, path should be parent directory only
+                    let parent_dir = if let Some(pos) = path.rfind('/') {
+                        if pos == 0 { "/" } else { &path[..pos] }
+                    } else {
+                        "/"
+                    };
+                    debug!("Getting policy_id from directory: {}", parent_dir);
+                    let dir_list = client.list_directory(parent_dir).await?;
+                    dir_list.policy.id
+                };
+
+                // V3 uses parent directory as path, not full file path
+                let upload_dir = if let Some(pos) = path.rfind('/') {
+                    if pos == 0 { "/" } else { &path[..pos] }
+                } else {
+                    "/"
+                };
                 let file_name = path.rsplit('/').next().unwrap_or("file");
+                debug!("V3 upload - dir: {}, file: {}", upload_dir, file_name);
                 let request = v3_models::UploadFileRequest {
-                    path,
+                    path: upload_dir,
                     name: file_name,
-                    policy_id: policy_id.unwrap_or(""),
+                    policy_id: &final_policy_id,
                     size: content.len() as i64,
                     last_modified: 0,
                     mime_type: "",
@@ -276,11 +308,38 @@ impl super::CloudreveAPI {
                 Ok(())
             }
             UnifiedClient::V4(client) => {
+                // V4: Need to get policy_id if not provided
+                let final_policy_id = if let Some(pid) = policy_id {
+                    pid.to_string()
+                } else {
+                    // Get policy_id from parent directory listing
+                    let parent_dir = if let Some(pos) = path.rfind('/') {
+                        if pos == 0 { "/" } else { &path[..pos] }
+                    } else {
+                        "/"
+                    };
+                    debug!("V4: Getting policy_id from directory: {}", parent_dir);
+                    let list_request = v4_models::ListFilesRequest {
+                        path: parent_dir,
+                        page: Some(0),
+                        page_size: Some(1),
+                        ..Default::default()
+                    };
+                    match client.list_files(&list_request).await {
+                        Ok(response) => {
+                            response.storage_policy
+                                .map(|p| p.id)
+                                .unwrap_or_else(|| "default".to_string())
+                        }
+                        Err(_) => "default".to_string(),
+                    }
+                };
+
                 // V4: Use upload session
                 let request = v4_models::CreateUploadSessionRequest {
-                    uri: path,
+                    uri: &path_to_uri(path),
                     size: content.len() as u64,
-                    policy_id: policy_id.unwrap_or("default"),
+                    policy_id: &final_policy_id,
                     last_modified: None,
                     mime_type: None,
                     metadata: None,
@@ -288,23 +347,8 @@ impl super::CloudreveAPI {
                 };
                 let session = client.create_upload_session(&request).await?;
 
-                // Upload content (simplified - single chunk)
-                // This is a simplified version - real implementation would handle chunking
-                let url = format!("{}/api/v4/file/upload/complete", client.base_url);
-                let http_resp = client.http_client
-                    .post(&url)
-                    .bearer_auth(client.token.as_ref().ok_or_else(|| {
-                        Error::InvalidResponse("No token available".to_string())
-                    })?)
-                    .json(&serde_json::json!({"session_id": session.session_id}))
-                    .send()
-                    .await?;
-
-                if !http_resp.status().is_success() {
-                    return Err(Error::Http(reqwest::Error::from(
-                        http_resp.error_for_status().unwrap_err()
-                    )));
-                }
+                // Upload content
+                client.upload_file_chunk(&session.session_id, 0, &content).await?;
 
                 Ok(())
             }
@@ -319,8 +363,46 @@ impl super::CloudreveAPI {
 
         match &self.inner {
             UnifiedClient::V3(client) => {
-                let url = client.download_file(path).await?;
-                Ok(url.url)
+                // V3: Need file ID, not path
+                // Parse path to get parent directory and filename
+                let normalized_path = if path.ends_with('/') && path != "/" {
+                    &path[..path.len() - 1]
+                } else {
+                    path
+                };
+
+                let parent_path = if normalized_path == "/" {
+                    "/"
+                } else {
+                    let pos = normalized_path.rfind('/');
+                    match pos {
+                        Some(0) => "/",
+                        Some(p) => &normalized_path[..p],
+                        None => "/",
+                    }
+                };
+
+                let file_name = normalized_path.rsplit('/').next().unwrap_or("");
+
+                debug!("V3: Looking for file '{}' in parent directory '{}'", file_name, parent_path);
+
+                // List directory to find file ID
+                let dir_list = client.list_directory(parent_path).await?;
+                let file_id = dir_list
+                    .objects
+                    .iter()
+                    .find(|obj| obj.name == file_name)
+                    .ok_or_else(|| Error::InvalidResponse(format!("File not found: {}", path)))?
+                    .id
+                    .clone();
+
+                debug!("V3: Found file ID: {}", file_id);
+
+                // Download using file ID
+                let url_info = client.download_file(&file_id).await?;
+                // Construct full URL from base_url and relative path
+                let full_url = format!("{}{}", self.base_url.trim_end_matches('/'), url_info.url);
+                Ok(full_url)
             }
             UnifiedClient::V4(client) => {
                 let request = v4_models::CreateDownloadUrlRequest {
@@ -362,6 +444,51 @@ impl super::CloudreveAPI {
                 };
                 client.restore_from_trash(&request).await?;
                 Ok(())
+            }
+        }
+    }
+
+    /// Preview a file
+    ///
+    /// Returns preview information for the file. For V3, requires file ID.
+    pub async fn preview_file(&self, file_id: &str) -> Result<String, Error> {
+        debug!("Previewing file: {}", file_id);
+
+        match &self.inner {
+            UnifiedClient::V3(client) => {
+                // V3: Get preview info
+                let _preview = client.preview_file(file_id).await?;
+                // Return preview URL or info
+                Ok(format!("Preview available for file: {}", file_id))
+            }
+            UnifiedClient::V4(_client) => {
+                // V4 preview implementation would go here
+                Err(Error::UnsupportedFeature(
+                    "preview".to_string(),
+                    "v4".to_string(),
+                ))
+            }
+        }
+    }
+
+    /// Get thumbnail for a file
+    ///
+    /// Returns thumbnail information for the file. For V3, requires file ID.
+    pub async fn get_thumbnail(&self, file_id: &str) -> Result<String, Error> {
+        debug!("Getting thumbnail for file: {}", file_id);
+
+        match &self.inner {
+            UnifiedClient::V3(client) => {
+                // V3: Get thumbnail info
+                let _thumbnail = client.get_thumbnail(file_id).await?;
+                Ok(format!("Thumbnail available for file: {}", file_id))
+            }
+            UnifiedClient::V4(_client) => {
+                // V4 thumbnail implementation would go here
+                Err(Error::UnsupportedFeature(
+                    "thumbnail".to_string(),
+                    "v4".to_string(),
+                ))
             }
         }
     }
