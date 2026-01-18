@@ -63,17 +63,47 @@ impl super::CloudreveAPI {
 
         match &self.inner {
             UnifiedClient::V3(client) => {
-                // V3 requires separate lists for folders and files
-                let (folders, files) = match &target {
-                    DeleteTarget::Path(path) => {
-                        // For path, assume it's a single item
-                        (vec![path.as_str()], Vec::<&str>::new())
-                    }
-                    DeleteTarget::Uri(uri) => {
-                        // V3 doesn't use URIs the same way, treat as path
-                        (vec![uri.as_str()], Vec::<&str>::new())
+                // V3 requires IDs, not paths. Need to get the ID from the parent directory listing.
+                let path = match &target {
+                    DeleteTarget::Path(p) => p.as_str(),
+                    DeleteTarget::Uri(u) => u.as_str(),
+                };
+
+                // Get the parent directory to find the object's ID
+                let normalized_path = if path.ends_with('/') && path != "/" {
+                    &path[..path.len() - 1]
+                } else {
+                    path
+                };
+
+                let parent_path = if normalized_path == "/" {
+                    return Err(Error::InvalidResponse("Cannot delete root directory".to_string()));
+                } else {
+                    let pos = normalized_path.rfind('/');
+                    match pos {
+                        Some(0) => "/",
+                        Some(p) => &normalized_path[..p],
+                        None => "/",
                     }
                 };
+
+                let file_name = normalized_path.rsplit('/').next().unwrap_or("");
+
+                // List parent directory to find the object
+                let dir_list = client.list_directory(parent_path).await?;
+
+                // Find the object by name to get its ID and type
+                let obj = dir_list.objects.iter()
+                    .find(|obj| obj.name == file_name)
+                    .ok_or_else(|| Error::InvalidResponse(format!("File not found: {}", path)))?;
+
+                // Separate into files and folders based on object type
+                let (folders, files) = if obj.object_type == "dir" {
+                    (vec![obj.id.as_str()], Vec::<&str>::new())
+                } else {
+                    (Vec::<&str>::new(), vec![obj.id.as_str()])
+                };
+
                 let request = v3_models::DeleteObjectRequest {
                     items: files,
                     dirs: folders,
