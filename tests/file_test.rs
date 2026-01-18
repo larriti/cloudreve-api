@@ -99,8 +99,6 @@ mod file_tests {
             storage_policy: None,
             view: None,
         };
-
-        assert!(true);
     }
 }
 

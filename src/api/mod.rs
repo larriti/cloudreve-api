@@ -31,12 +31,20 @@ impl ApiVersion {
         }
     }
 
-    pub fn from_str(s: &str) -> Option<Self> {
+    pub fn from_str_inner(s: &str) -> Option<Self> {
         match s.to_lowercase().as_str() {
             "v3" | "3" => Some(ApiVersion::V3),
             "v4" | "4" => Some(ApiVersion::V4),
             _ => None,
         }
+    }
+}
+
+impl std::str::FromStr for ApiVersion {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Self::from_str_inner(s).ok_or_else(|| format!("Invalid API version: {}", s))
     }
 }
 

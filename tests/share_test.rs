@@ -107,7 +107,5 @@ mod share_tests {
             expired_at: Some("2024-01-01T00:00:00Z".to_string()),
             download_count: 5,
         };
-
-        assert!(true);
     }
 }

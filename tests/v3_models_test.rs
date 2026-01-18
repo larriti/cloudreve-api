@@ -1,5 +1,4 @@
 use cloudreve_api::api::v3::models::*;
-use tokio;
 
 #[cfg(test)]
 mod v3_models_tests {

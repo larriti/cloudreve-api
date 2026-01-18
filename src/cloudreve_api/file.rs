@@ -36,7 +36,7 @@ impl super::CloudreveAPI {
                     next_page_token: None,
                 };
                 let list_response = client.list_files(&request).await?;
-                Ok(FileList::V4(list_response))
+                Ok(FileList::V4(Box::new(list_response)))
             }
         }
     }
@@ -541,7 +541,7 @@ impl super::CloudreveAPI {
 #[derive(Debug)]
 pub enum FileList {
     V3(v3_models::DirectoryList),
-    V4(v4_models::ListResponse),
+    V4(Box<v4_models::ListResponse>),
 }
 
 impl FileList {

@@ -89,7 +89,5 @@ mod workflow_tests {
             pagination: _task_pagination.clone(),
             tasks: vec![], // Using empty vector since TaskResponse is different from DetailedTask
         };
-
-        assert!(true);
     }
 }

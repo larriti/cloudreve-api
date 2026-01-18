@@ -240,9 +240,9 @@ mod error_propagation_tests {
 
         let result = client.get::<i32>("/status/200").await;
 
-        if let Err(error) = result {
-            if let Error::Json(_) = error {}
-        }
+        if let Err(error) = result
+            && let Error::Json(_) = error
+        {}
 
         Ok(())
     }

@@ -89,8 +89,6 @@ mod user_tests {
         let _two_factor_verify = TwoFactorVerify {
             code: "123456".to_string(),
         };
-
-        assert!(true);
     }
 
     #[test]

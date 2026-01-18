@@ -146,7 +146,5 @@ mod session_tests {
             disable_view_sync: Some("false".to_string()),
             share_links_in_profile: Some(ShareLinkVisibility::AllShare),
         };
-
-        assert!(true);
     }
 }

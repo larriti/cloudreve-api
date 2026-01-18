@@ -46,8 +46,6 @@ mod client_tests {
 
         assert!(debug_output.contains("ApiV4Client"));
         assert!(debug_output.contains("https://example.com"));
-
-        assert!(true);
     }
 
     #[tokio::test]
