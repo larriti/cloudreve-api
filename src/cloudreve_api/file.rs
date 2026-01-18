@@ -548,8 +548,40 @@ impl FileList {
     /// Get parent directory name
     pub fn parent_name(&self) -> String {
         match self {
-            FileList::V3(d) => d.parent.clone(),
+            FileList::V3(d) => d.parent.clone(), // V3: parent field is the parent ID
             FileList::V4(r) => r.parent.name.clone(),
+        }
+    }
+
+    /// Get parent directory ID
+    pub fn parent_id(&self) -> String {
+        match self {
+            FileList::V3(d) => d.parent.clone(), // V3: parent field is the parent ID
+            FileList::V4(r) => r.parent.id.clone(),
+        }
+    }
+
+    /// Get parent directory path
+    pub fn parent_path(&self) -> String {
+        match self {
+            FileList::V3(_) => String::new(), // V3 doesn't provide parent path
+            FileList::V4(r) => r.parent.path.clone(),
+        }
+    }
+
+    /// Get storage policy ID (V4 only)
+    pub fn storage_policy_id(&self) -> Option<String> {
+        match self {
+            FileList::V3(_) => None,
+            FileList::V4(r) => r.storage_policy.as_ref().map(|p| p.id.clone()),
+        }
+    }
+
+    /// Get storage policy name (V4 only)
+    pub fn storage_policy_name(&self) -> Option<String> {
+        match self {
+            FileList::V3(_) => None,
+            FileList::V4(r) => r.storage_policy.as_ref().map(|p| p.name.clone()),
         }
     }
 

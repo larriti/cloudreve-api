@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Task {
     pub id: String,
-    pub name: String,
+    pub name: Option<String>,
     pub status: String,
     pub created_at: String,
     pub updated_at: String,
@@ -26,7 +26,8 @@ pub struct TaskResponse {
     pub error: Option<String>,
     pub error_history: Option<Vec<String>>,
     pub retry_count: Option<i32>,
-    pub node: NewNode,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub node: Option<NewNode>,
 }
 
 /// Task status enum
@@ -72,7 +73,8 @@ pub enum TaskType {
 /// Task summary
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct TaskSummary {
-    pub phase: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub phase: Option<String>,
     pub props: serde_json::Value,
 }
 
@@ -105,7 +107,7 @@ pub struct TaskListResponse {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct TaskPagination {
     pub page_size: i32,
-    pub next_token: String,
+    pub next_token: Option<String>,
     pub is_cursor: bool,
 }
 
@@ -133,8 +135,11 @@ pub struct DetailedTask {
 /// Upload progress
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Progress {
-    pub total: i64,
-    pub current: i64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub total: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub current: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub identifier: Option<String>,
 }
 
@@ -167,7 +172,7 @@ pub struct FileActivitiesResponse {
 pub struct ActivitiesPagination {
     pub page: i32,
     pub page_size: i32,
-    pub next_token: String,
+    pub next_token: Option<String>,
     pub is_cursor: bool,
 }
 
@@ -183,14 +188,17 @@ pub struct ListTasksRequest<'a> {
 /// Create archive request
 #[derive(Debug, Serialize)]
 pub struct CreateArchiveRequest<'a> {
-    pub files: Vec<&'a str>,
-    pub name: &'a str,
-    pub path: Option<&'a str>,
+    #[serde(rename = "src")]
+    pub src: Vec<&'a str>,
+    #[serde(rename = "dst")]
+    pub dst: &'a str,
 }
 
 /// Extract archive request
 #[derive(Debug, Serialize)]
 pub struct ExtractArchiveRequest<'a> {
-    pub archive_uri: &'a str,
-    pub path: Option<&'a str>,
+    #[serde(rename = "src")]
+    pub src: Vec<&'a str>,
+    #[serde(rename = "dst")]
+    pub dst: &'a str,
 }

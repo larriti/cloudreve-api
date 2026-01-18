@@ -257,28 +257,30 @@ pub struct GetArchiveListRequest<'a> {
     pub uri: &'a str,
 }
 
-/// Create remote download request
-#[derive(Debug, Serialize)]
-pub struct CreateRemoteDownloadRequest<'a> {
-    pub url: &'a str,
-    pub path: Option<&'a str>,
-    pub node_id: Option<u64>,
-}
-
 /// Relocate request
 #[derive(Debug, Serialize)]
 pub struct RelocateRequest<'a> {
-    pub files: Vec<&'a str>,
-    pub target_policy_id: &'a str,
-    pub path: Option<&'a str>,
+    #[serde(rename = "src")]
+    pub src: Vec<&'a str>,
+    #[serde(rename = "dst_policy_id")]
+    pub dst_policy_id: &'a str,
 }
 
 /// Import request
 #[derive(Debug, Serialize)]
 pub struct ImportRequest<'a> {
-    pub source_url: &'a str,
-    pub target_path: &'a str,
-    pub node_id: Option<u64>,
+    #[serde(rename = "src")]
+    pub src: &'a str,
+    #[serde(rename = "dst")]
+    pub dst: &'a str,
+    #[serde(rename = "user_id")]
+    pub user_id: &'a str,
+    #[serde(rename = "policy_id")]
+    pub policy_id: i32,
+    #[serde(rename = "extract_media_meta")]
+    pub extract_media_meta: Option<bool>,
+    #[serde(rename = "recursive")]
+    pub recursive: Option<bool>,
 }
 
 /// Select download files request
@@ -290,7 +292,10 @@ pub struct SelectDownloadFilesRequest<'a> {
 /// Create download request (alias for remote download)
 #[derive(Debug, Serialize)]
 pub struct CreateDownloadRequest<'a> {
-    pub url: &'a str,
-    pub path: Option<&'a str>,
-    pub node_id: Option<u64>,
+    #[serde(rename = "dst")]
+    pub dst: &'a str,
+    #[serde(rename = "src")]
+    pub src: Vec<&'a str>,
+    #[serde(rename = "preferred_node_id")]
+    pub preferred_node_id: Option<String>,
 }

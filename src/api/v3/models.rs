@@ -174,24 +174,41 @@ pub struct ShareRequest {
 }
 
 /// Site configuration for v3 API
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Default)]
 pub struct SiteConfig {
+    #[serde(default)]
     pub title: String,
+    #[serde(default)]
     pub login_captcha: bool,
+    #[serde(default)]
     pub reg_captcha: bool,
+    #[serde(default)]
     pub forget_captcha: bool,
+    #[serde(default)]
     pub email_active: bool,
+    #[serde(default)]
     pub themes: String,
+    #[serde(default)]
     pub default_theme: String,
+    #[serde(default)]
     pub home_view_method: String,
+    #[serde(default)]
     pub share_view_method: String,
+    #[serde(default)]
     pub authn: bool,
+    #[serde(default)]
     pub user: Option<User>,
+    #[serde(default)]
     pub captcha_recaptcha_key: String,
+    #[serde(default)]
     pub captcha_type: String,
+    #[serde(default)]
     pub tcaptcha_captcha_app_id: String,
+    #[serde(default)]
     pub register_enabled: bool,
+    #[serde(default)]
     pub app_promotion: bool,
+    #[serde(default)]
     pub wopi_exts: Option<Value>,
 }
 

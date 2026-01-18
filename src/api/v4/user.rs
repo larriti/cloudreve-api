@@ -10,11 +10,6 @@ impl ApiV4Client {
         Ok(response.data.unwrap())
     }
 
-    pub async fn get_current_user(&self) -> Result<User, Error> {
-        let response: ApiResponse<User> = self.get("/user").await?;
-        Ok(response.data.unwrap())
-    }
-
     pub async fn get_user_capacity(&self) -> Result<Quota, Error> {
         let response: ApiResponse<Quota> = self.get("/user/capacity").await?;
         Ok(response.data.unwrap())
