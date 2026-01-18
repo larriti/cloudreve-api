@@ -1,7 +1,7 @@
 //! User management for CloudreveAPI
 
-use crate::client::UnifiedClient;
 use crate::Error;
+use crate::client::UnifiedClient;
 use log::debug;
 
 /// Unified user information
@@ -43,13 +43,15 @@ impl super::CloudreveAPI {
                         status: Some(user.status.to_string()),
                     })
                 } else {
-                    Err(Error::InvalidResponse("No user info in site config".to_string()))
+                    Err(Error::InvalidResponse(
+                        "No user info in site config".to_string(),
+                    ))
                 }
             }
             UnifiedClient::V4(_client) => {
                 // V4: Use a placeholder - actual implementation would call user endpoint
                 Err(Error::InvalidResponse(
-                    "User info endpoint not yet implemented for V4".to_string()
+                    "User info endpoint not yet implemented for V4".to_string(),
                 ))
             }
         }

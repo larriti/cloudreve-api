@@ -61,7 +61,7 @@ pub fn uri_to_path(uri: &str) -> Result<&str, String> {
         ));
     }
 
-    let path = &uri[CLOUDREVE_URI_PREFIX.len()-1..];
+    let path = &uri[CLOUDREVE_URI_PREFIX.len() - 1..];
     Ok(path)
 }
 
@@ -82,12 +82,18 @@ mod tests {
 
     #[test]
     fn test_path_to_uri_absolute() {
-        assert_eq!(path_to_uri("/path/to/file.txt"), "cloudreve://my/path/to/file.txt");
+        assert_eq!(
+            path_to_uri("/path/to/file.txt"),
+            "cloudreve://my/path/to/file.txt"
+        );
     }
 
     #[test]
     fn test_path_to_uri_relative() {
-        assert_eq!(path_to_uri("path/to/file.txt"), "cloudreve://my/path/to/file.txt");
+        assert_eq!(
+            path_to_uri("path/to/file.txt"),
+            "cloudreve://my/path/to/file.txt"
+        );
     }
 
     #[test]
@@ -116,9 +122,9 @@ mod tests {
     fn test_uri_to_path() {
         assert_eq!(
             uri_to_path("cloudreve://my/path/to/file.txt").unwrap(),
-            "path/to/file.txt"
+            "/path/to/file.txt"
         );
-        assert_eq!(uri_to_path("cloudreve://my/").unwrap(), "");
+        assert_eq!(uri_to_path("cloudreve://my/").unwrap(), "/");
     }
 
     #[test]

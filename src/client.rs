@@ -1,9 +1,9 @@
 //! Unified Cloudreve client with automatic version detection
 
-use crate::api::{ApiVersion, VersionInfo};
+use crate::Error;
 use crate::api::v3::ApiV3Client;
 use crate::api::v4::ApiV4Client as ApiV4ClientInner;
-use crate::Error;
+use crate::api::{ApiVersion, VersionInfo};
 use log::debug;
 
 /// Unified Cloudreve client that automatically handles version differences
@@ -67,7 +67,8 @@ impl UnifiedClient {
             Err(e) => {
                 debug!("V3 endpoint failed: {}", e);
                 Err(Error::InvalidResponse(
-                    "Could not detect API version. Neither V3 nor V4 endpoints responded.".to_string()
+                    "Could not detect API version. Neither V3 nor V4 endpoints responded."
+                        .to_string(),
                 ))
             }
         }
@@ -153,14 +154,8 @@ impl Clone for UnifiedClient {
 impl std::fmt::Debug for UnifiedClient {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            UnifiedClient::V3(client) => f
-                .debug_tuple("UnifiedClient::V3")
-                .field(client)
-                .finish(),
-            UnifiedClient::V4(client) => f
-                .debug_tuple("UnifiedClient::V4")
-                .field(client)
-                .finish(),
+            UnifiedClient::V3(client) => f.debug_tuple("UnifiedClient::V3").field(client).finish(),
+            UnifiedClient::V4(client) => f.debug_tuple("UnifiedClient::V4").field(client).finish(),
         }
     }
 }

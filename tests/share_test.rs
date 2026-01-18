@@ -1,6 +1,5 @@
-use cloudreve_api::api::v4::models::*;
 use cloudreve_api::Result;
-use tokio;
+use cloudreve_api::api::v4::models::*;
 
 #[cfg(test)]
 mod share_tests {
@@ -79,25 +78,25 @@ mod share_tests {
                 nickname: Some("Test User".to_string()),
                 created_at: "2023-01-01T00:00:00Z".to_string(),
                 anonymous: Some(false),
-                group: NewGroup {
+                group: Some(NewGroup {
                     id: "1".to_string(),
                     name: "Default".to_string(),
                     permission: "read".to_string(),
                     direct_link_batch_size: 10,
                     trash_retention: 30,
-                },
+                }),
                 status: Some(UserStatus::Active),
                 avatar: Some(AvatarType::Gravatar),
                 preferred_theme: Some("default".to_string()),
                 credit: Some(100),
-                language: "en".to_string(),
+                language: Some("en".to_string()),
                 disable_view_sync: Some("false".to_string()),
                 share_links_in_profile: Some(ShareLinkVisibility::AllShare),
             },
             created_at: "2023-01-01T00:00:00Z".to_string(),
             expired: false,
             url: "https://example.com/s/1".to_string(),
-            permission_setting: _permission_setting.clone(),
+            permission_setting: Some(_permission_setting.clone()),
             is_private: Some(false),
             password: Some("password".to_string()),
             source_uri: Some("/path/file.txt".to_string()),

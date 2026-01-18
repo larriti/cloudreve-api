@@ -41,7 +41,10 @@ impl<'de> Deserialize<'de> for FileType {
         match value {
             0 => Ok(FileType::File),
             1 => Ok(FileType::Folder),
-            _ => Err(serde::de::Error::custom(format!("Invalid FileType value: {}", value))),
+            _ => Err(serde::de::Error::custom(format!(
+                "Invalid FileType value: {}",
+                value
+            ))),
         }
     }
 }

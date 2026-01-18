@@ -65,7 +65,7 @@ mod v3_models_tests {
             name: "Default storage policy".to_string(),
             policy_type: "local".to_string(),
             max_size: 0,
-            file_type: vec![],
+            file_type: None,
         };
 
         assert_eq!(policy.id, "z3hJ");
@@ -113,7 +113,7 @@ mod v3_models_tests {
                 name: "Default storage policy".to_string(),
                 policy_type: "local".to_string(),
                 max_size: 0,
-                file_type: vec![],
+                file_type: None,
             },
         };
 
@@ -127,12 +127,11 @@ mod v3_models_tests {
             session_id: "abc123".to_string(),
             chunk_size: 1024,
             expires: 1234567890,
-            upload_urls: vec!["https://example.com/upload".to_string()],
         };
 
         assert_eq!(session.session_id, "abc123");
         assert_eq!(session.chunk_size, 1024);
-        assert_eq!(session.upload_urls.len(), 1);
+        assert_eq!(session.expires, 1234567890);
     }
 
     #[test]

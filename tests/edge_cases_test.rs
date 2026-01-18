@@ -1,5 +1,4 @@
 use cloudreve_api::{CloudreveClient, Error, Result};
-use tokio;
 
 #[cfg(test)]
 mod edge_cases_tests {
@@ -242,10 +241,7 @@ mod error_propagation_tests {
         let result = client.get::<i32>("/status/200").await;
 
         if let Err(error) = result {
-            match error {
-                Error::Json(_) => {}
-                _ => {}
-            }
+            if let Error::Json(_) = error {}
         }
 
         Ok(())

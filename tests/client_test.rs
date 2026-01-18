@@ -1,5 +1,4 @@
 use cloudreve_api::{CloudreveClient, Result};
-use tokio;
 
 #[cfg(test)]
 mod client_tests {

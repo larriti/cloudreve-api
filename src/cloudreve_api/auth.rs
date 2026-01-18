@@ -1,9 +1,9 @@
 //! Authentication and token management for CloudreveAPI
 
-use crate::client::UnifiedClient;
+use crate::Error;
 use crate::api::v3::models as v3_models;
 use crate::api::v4::models as v4_models;
-use crate::Error;
+use crate::client::UnifiedClient;
 use log::debug;
 
 /// Authentication methods for CloudreveAPI
@@ -19,7 +19,7 @@ impl super::CloudreveAPI {
             UnifiedClient::V3(client) => {
                 let request = v3_models::LoginRequest {
                     user_name: email,
-                    password: password,
+                    password,
                     captcha_code: "",
                 };
                 client.clear_session_cookie();
@@ -28,10 +28,7 @@ impl super::CloudreveAPI {
                 Ok(LoginResponse::V3(V3LoginResponse { user }))
             }
             UnifiedClient::V4(client) => {
-                let request = v4_models::LoginRequest {
-                    email,
-                    password,
-                };
+                let request = v4_models::LoginRequest { email, password };
                 let login_data = client.login(&request).await?;
 
                 // Store token internally
@@ -55,7 +52,9 @@ impl super::CloudreveAPI {
                 if let Some(cookie) = &client.session_cookie {
                     Ok(TokenInfo::V3Session(cookie.clone()))
                 } else {
-                    Err(Error::InvalidResponse("No session cookie available".to_string()))
+                    Err(Error::InvalidResponse(
+                        "No session cookie available".to_string(),
+                    ))
                 }
             }
             UnifiedClient::V4(client) => {

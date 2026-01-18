@@ -1,8 +1,8 @@
 //! Workflow-related API endpoints for Cloudreve v4 API
 
-use crate::api::v4::models::*;
-use crate::api::v4::ApiV4Client;
 use crate::Error;
+use crate::api::v4::ApiV4Client;
+use crate::api::v4::models::*;
 
 impl ApiV4Client {
     pub async fn create_remote_download(

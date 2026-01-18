@@ -55,18 +55,30 @@ impl<'de> Deserialize<'de> for ShareSourceType {
                     match i {
                         0 => Ok(ShareSourceType::File),
                         1 => Ok(ShareSourceType::Folder),
-                        _ => Err(Error::custom(format!("Invalid ShareSourceType value: {}", i))),
+                        _ => Err(Error::custom(format!(
+                            "Invalid ShareSourceType value: {}",
+                            i
+                        ))),
                     }
                 } else {
-                    Err(Error::custom(format!("Invalid ShareSourceType number: {}", n)))
+                    Err(Error::custom(format!(
+                        "Invalid ShareSourceType number: {}",
+                        n
+                    )))
                 }
             }
             Value::String(s) => match s.as_str() {
                 "0" => Ok(ShareSourceType::File),
                 "1" => Ok(ShareSourceType::Folder),
-                _ => Err(Error::custom(format!("Invalid ShareSourceType value: {}", s))),
+                _ => Err(Error::custom(format!(
+                    "Invalid ShareSourceType value: {}",
+                    s
+                ))),
             },
-            _ => Err(Error::custom(format!("Invalid ShareSourceType type: {:?}", value))),
+            _ => Err(Error::custom(format!(
+                "Invalid ShareSourceType type: {:?}",
+                value
+            ))),
         }
     }
 }

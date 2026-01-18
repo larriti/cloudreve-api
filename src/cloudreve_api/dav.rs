@@ -1,7 +1,7 @@
 //! WebDAV account operations for CloudreveAPI
 
-use crate::client::UnifiedClient;
 use crate::Error;
+use crate::client::UnifiedClient;
 use log::debug;
 
 /// Unified WebDAV account information
@@ -32,27 +32,38 @@ impl super::CloudreveAPI {
         match &self.inner {
             UnifiedClient::V3(client) => {
                 let accounts = client.get_webdav_accounts().await?;
-                let dav_accounts = accounts.into_iter().map(|acc| DavAccount {
-                    id: acc.id.to_string(),
-                    name: acc.name,
-                    uri: Some(acc.uri),
-                    server: None,
-                    password: Some(acc.password),
-                    created_at: acc.created_at,
-                }).collect();
-                Ok(DavListResponse { accounts: dav_accounts })
+                let dav_accounts = accounts
+                    .into_iter()
+                    .map(|acc| DavAccount {
+                        id: acc.id.to_string(),
+                        name: acc.name,
+                        uri: Some(acc.uri),
+                        server: None,
+                        password: Some(acc.password),
+                        created_at: acc.created_at,
+                    })
+                    .collect();
+                Ok(DavListResponse {
+                    accounts: dav_accounts,
+                })
             }
             UnifiedClient::V4(client) => {
                 let response = client.list_dav_accounts(page_size, None).await?;
-                let dav_accounts = response.accounts.into_iter().map(|acc| DavAccount {
-                    id: acc.id.to_string(),
-                    name: acc.name,
-                    uri: Some(acc.uri),
-                    server: None,
-                    password: Some(acc.password),
-                    created_at: acc.created_at,
-                }).collect();
-                Ok(DavListResponse { accounts: dav_accounts })
+                let dav_accounts = response
+                    .accounts
+                    .into_iter()
+                    .map(|acc| DavAccount {
+                        id: acc.id.to_string(),
+                        name: acc.name,
+                        uri: Some(acc.uri),
+                        server: None,
+                        password: Some(acc.password),
+                        created_at: acc.created_at,
+                    })
+                    .collect();
+                Ok(DavListResponse {
+                    accounts: dav_accounts,
+                })
             }
         }
     }
@@ -70,12 +81,10 @@ impl super::CloudreveAPI {
         debug!("Creating WebDAV account: {} at {}", name, uri);
 
         match &self.inner {
-            UnifiedClient::V3(_) => {
-                Err(Error::UnsupportedFeature(
-                    "create WebDAV account".to_string(),
-                    "v3".to_string(),
-                ))
-            }
+            UnifiedClient::V3(_) => Err(Error::UnsupportedFeature(
+                "create WebDAV account".to_string(),
+                "v3".to_string(),
+            )),
             UnifiedClient::V4(client) => {
                 let request = crate::api::v4::models::CreateDavAccountRequest {
                     uri: uri.to_string(),
@@ -104,18 +113,20 @@ impl super::CloudreveAPI {
         debug!("Updating WebDAV account: {}", id);
 
         match &self.inner {
-            UnifiedClient::V3(_) => {
-                Err(Error::UnsupportedFeature(
-                    "update WebDAV account".to_string(),
-                    "v3".to_string(),
-                ))
-            }
+            UnifiedClient::V3(_) => Err(Error::UnsupportedFeature(
+                "update WebDAV account".to_string(),
+                "v3".to_string(),
+            )),
             UnifiedClient::V4(client) => {
                 // For update, we need to get the current account first to fill in missing fields
                 let current_list = client.list_dav_accounts(100, None).await?;
-                let current = current_list.accounts.iter()
+                let current = current_list
+                    .accounts
+                    .iter()
                     .find(|a| a.id == id)
-                    .ok_or_else(|| Error::InvalidResponse(format!("WebDAV account '{}' not found", id)))?;
+                    .ok_or_else(|| {
+                        Error::InvalidResponse(format!("WebDAV account '{}' not found", id))
+                    })?;
 
                 let request = crate::api::v4::models::CreateDavAccountRequest {
                     uri: uri.unwrap_or(&current.uri).to_string(),
@@ -137,12 +148,10 @@ impl super::CloudreveAPI {
         debug!("Deleting WebDAV account: {}", id);
 
         match &self.inner {
-            UnifiedClient::V3(_) => {
-                Err(Error::UnsupportedFeature(
-                    "delete WebDAV account".to_string(),
-                    "v3".to_string(),
-                ))
-            }
+            UnifiedClient::V3(_) => Err(Error::UnsupportedFeature(
+                "delete WebDAV account".to_string(),
+                "v3".to_string(),
+            )),
             UnifiedClient::V4(client) => {
                 client.delete_dav_account(id).await?;
                 Ok(())

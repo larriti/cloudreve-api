@@ -1,9 +1,9 @@
 //! File-related API endpoints for Cloudreve v4 API
 
+use crate::Error;
+use crate::api::v4::ApiV4Client;
 use crate::api::v4::models::*;
 use crate::api::v4::uri::*;
-use crate::api::v4::ApiV4Client;
-use crate::Error;
 
 /// File management methods
 impl ApiV4Client {
@@ -125,7 +125,7 @@ impl ApiV4Client {
         match response.code {
             0 => Ok(()),
             code => Err(Error::Api {
-                code: code as i32,
+                code,
                 message: response.msg,
             }),
         }
@@ -196,7 +196,10 @@ impl ApiV4Client {
 
     pub async fn delete_upload_session(&self, path: &str, session_id: &str) -> Result<(), Error> {
         let uri = path_to_uri(path);
-        let request = DeleteUploadSessionRequest { id: session_id, uri: &uri };
+        let request = DeleteUploadSessionRequest {
+            id: session_id,
+            uri: &uri,
+        };
         let url = self.get_url("/file/upload");
 
         let body = serde_json::to_string(&request)?;
@@ -326,7 +329,8 @@ impl ApiV4Client {
             no_cache: request.no_cache,
         };
 
-        let response: ApiResponse<DownloadUrlResponse> = self.post("/file/url", &converted_request).await?;
+        let response: ApiResponse<DownloadUrlResponse> =
+            self.post("/file/url", &converted_request).await?;
         match response.data {
             Some(data) => Ok(data),
             None => Err(Error::InvalidResponse(format!(
@@ -340,9 +344,7 @@ impl ApiV4Client {
         let uris = paths_to_uris(&request.uris);
         let uris_refs: Vec<&str> = uris.iter().map(|s| s.as_str()).collect();
 
-        let converted_request = RestoreFileRequest {
-            uris: uris_refs,
-        };
+        let converted_request = RestoreFileRequest { uris: uris_refs };
 
         let _: ApiResponse<()> = self.post("/file/restore", &converted_request).await?;
         Ok(())

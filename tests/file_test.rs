@@ -1,6 +1,5 @@
+use cloudreve_api::Result;
 use cloudreve_api::api::v4::models::*;
-use cloudreve_api::{CloudreveClient, Result};
-use tokio;
 
 #[cfg(test)]
 mod file_tests {
@@ -108,7 +107,7 @@ mod file_tests {
 #[test]
 fn test_list_response_parsing() {
     use cloudreve_api::api::v4::models::*;
-    
+
     let json = r#"{
         "code": 0,
         "data": {

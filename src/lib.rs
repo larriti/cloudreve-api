@@ -19,7 +19,7 @@
 //!     api.login("user@example.com", "password").await?;
 //!
 //!     // List files
-//!     let files = api.list_files("/").await?;
+//!     let files = api.list_files("/", None, None).await?;
 //!     println!("Found {} items", files.total_count());
 //!
 //!     Ok(())
@@ -42,7 +42,7 @@ pub use api::v4::models::*;
 
 // Main Cloudreve API client
 pub use cloudreve_api::{
-    CloudreveAPI, DeleteTarget, FileItem, FileInfo, FileList, LoginResponse, TokenInfo,
+    CloudreveAPI, DeleteTarget, FileInfo, FileItem, FileList, LoginResponse, TokenInfo,
     V3LoginResponse, V4LoginResponse,
 };
 

@@ -1,8 +1,8 @@
 //! Download operations for CloudreveAPI
 
-use crate::client::UnifiedClient;
-use crate::api::v4::models as v4_models;
 use crate::Error;
+use crate::api::v4::models as v4_models;
+use crate::client::UnifiedClient;
 use log::debug;
 
 /// Download methods for CloudreveAPI
@@ -35,7 +35,9 @@ impl super::CloudreveAPI {
                 if let Some(first_url) = response.urls.first() {
                     Ok(first_url.url.clone())
                 } else {
-                    Err(Error::InvalidResponse("No download URL returned".to_string()))
+                    Err(Error::InvalidResponse(
+                        "No download URL returned".to_string(),
+                    ))
                 }
             }
         }

@@ -1,6 +1,5 @@
 use cloudreve_api::{CloudreveClient, Error, Result};
 use std::time::Duration;
-use tokio;
 
 #[cfg(test)]
 mod error_handling_tests {
@@ -9,11 +8,8 @@ mod error_handling_tests {
 
     #[tokio::test]
     async fn test_error_enum_variants() -> Result<()> {
-        let _json_error = Error::Json(serde_json::Error::io(std::io::Error::new(
-            std::io::ErrorKind::Other,
-            "test",
-        )));
-        let _io_error = Error::Io(std::io::Error::new(std::io::ErrorKind::Other, "test"));
+        let _json_error = Error::Json(serde_json::Error::io(std::io::Error::other("test")));
+        let _io_error = Error::Io(std::io::Error::other("test"));
         let _api_error = Error::Api {
             code: 404,
             message: "Not Found".to_string(),

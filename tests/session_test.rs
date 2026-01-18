@@ -1,6 +1,5 @@
 use cloudreve_api::api::v4::models::*;
 use cloudreve_api::{CloudreveClient, Result};
-use tokio;
 
 #[cfg(test)]
 mod session_tests {
@@ -132,18 +131,18 @@ mod session_tests {
             nickname: Some("Test User".to_string()),
             created_at: "2023-01-01T00:00:00Z".to_string(),
             anonymous: Some(false),
-            group: NewGroup {
+            group: Some(NewGroup {
                 id: "1".to_string(),
                 name: "Default".to_string(),
                 permission: "read".to_string(),
                 direct_link_batch_size: 10,
                 trash_retention: 30,
-            },
+            }),
             status: Some(UserStatus::Active),
             avatar: Some(AvatarType::Gravatar),
             preferred_theme: Some("default".to_string()),
             credit: Some(100),
-            language: "en".to_string(),
+            language: Some("en".to_string()),
             disable_view_sync: Some("false".to_string()),
             share_links_in_profile: Some(ShareLinkVisibility::AllShare),
         };

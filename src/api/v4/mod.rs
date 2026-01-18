@@ -4,20 +4,20 @@ use crate::Error;
 use log::debug;
 use serde::Serialize;
 
+/// WebDAV account management methods for v4 API
+pub mod dav;
 /// File management methods for v4 API
 pub mod file;
 /// Common data models for v4 API
 pub mod models;
-/// URI handling utilities for v4 API
-pub mod uri;
 /// Session management methods for v4 API
 pub mod session;
 /// Share management methods for v4 API
 pub mod share;
 /// Site-related methods for v4 API
 pub mod site;
-/// WebDAV account management methods for v4 API
-pub mod dav;
+/// URI handling utilities for v4 API
+pub mod uri;
 /// User management methods for v4 API
 pub mod user;
 /// Workflow management methods for v4 API

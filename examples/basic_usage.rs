@@ -5,7 +5,7 @@ use cloudreve_api::{CloudreveClient, Result};
 #[tokio::main]
 async fn main() -> Result<()> {
     // Create a new client
-    let client = CloudreveClient::new("https://your-cloudreve-instance.com");
+    let _client = CloudreveClient::new("https://your-cloudreve-instance.com");
 
     // Example 1: Get site configuration
     // Note: This method doesn't exist in the current API, so it's commented out

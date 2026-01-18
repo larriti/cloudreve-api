@@ -1,9 +1,9 @@
 //! WebDAV account management API endpoints for Cloudreve v4
 
+use crate::Error;
+use crate::api::v4::ApiV4Client;
 use crate::api::v4::models::*;
 use crate::api::v4::uri::path_to_uri;
-use crate::api::v4::ApiV4Client;
-use crate::Error;
 
 /// WebDAV account management methods
 impl ApiV4Client {
@@ -70,8 +70,9 @@ impl ApiV4Client {
             disable_sys_files: request.disable_sys_files,
         };
 
-        let response: ApiResponse<DavAccount> =
-            self.patch(&format!("/devices/dav/{}", id), &converted_request).await?;
+        let response: ApiResponse<DavAccount> = self
+            .patch(&format!("/devices/dav/{}", id), &converted_request)
+            .await?;
         match response.data {
             Some(data) => Ok(data),
             None => Err(Error::InvalidResponse(format!(

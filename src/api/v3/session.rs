@@ -1,8 +1,8 @@
 //! Session and authentication management for Cloudreve API v3
 
-use crate::api::v3::models::*;
-use crate::api::v3::ApiV3Client;
 use crate::Error;
+use crate::api::v3::ApiV3Client;
+use crate::api::v3::models::*;
 use log::debug;
 
 impl ApiV3Client {
@@ -31,7 +31,10 @@ impl ApiV3Client {
                         if part.starts_with("cloudreve-session=") {
                             let session_value = part.trim_start_matches("cloudreve-session=");
                             self.session_cookie = Some(session_value.to_string());
-                            debug!("Extracted V3 session cookie: {}...", &session_value[..session_value.len().min(20)]);
+                            debug!(
+                                "Extracted V3 session cookie: {}...",
+                                &session_value[..session_value.len().min(20)]
+                            );
                             break;
                         }
                     }
@@ -67,16 +70,19 @@ impl ApiV3Client {
         // Extract session cookie from Set-Cookie headers
         let cookie_headers = response.headers().get_all("Set-Cookie");
         for cookie_header in cookie_headers {
-            if let Ok(cookie_str) = cookie_header.to_str() {
-                if cookie_str.contains("cloudreve-session=") {
-                    for part in cookie_str.split(';') {
-                        let part = part.trim();
-                        if part.starts_with("cloudreve-session=") {
-                            let session_value = part.trim_start_matches("cloudreve-session=");
-                            self.session_cookie = Some(session_value.to_string());
-                            debug!("Extracted V3 session cookie (2FA): {}...", &session_value[..session_value.len().min(20)]);
-                            break;
-                        }
+            if let Ok(cookie_str) = cookie_header.to_str()
+                && cookie_str.contains("cloudreve-session=")
+            {
+                for part in cookie_str.split(';') {
+                    let part = part.trim();
+                    if part.starts_with("cloudreve-session=") {
+                        let session_value = part.trim_start_matches("cloudreve-session=");
+                        self.session_cookie = Some(session_value.to_string());
+                        debug!(
+                            "Extracted V3 session cookie (2FA): {}...",
+                            &session_value[..session_value.len().min(20)]
+                        );
+                        break;
                     }
                 }
             }

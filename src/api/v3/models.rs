@@ -120,7 +120,7 @@ pub struct UploadSession {
     pub session_id: String,
     #[serde(rename = "chunkSize")]
     pub chunk_size: i64,
-    pub expires: i64
+    pub expires: i64,
 }
 
 /// Upload file request for v3 API

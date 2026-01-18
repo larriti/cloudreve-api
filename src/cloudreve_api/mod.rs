@@ -10,25 +10,25 @@
 //! - `download`: Download URL operations
 //! - `dav`: WebDAV account operations
 
-use crate::client::UnifiedClient;
-use crate::api::ApiVersion;
 use crate::Error;
+use crate::api::ApiVersion;
+use crate::client::UnifiedClient;
 use log::debug;
 
 // Re-export submodule types for convenience
 pub use auth::{LoginResponse, TokenInfo, V3LoginResponse, V4LoginResponse};
-pub use file::{DeleteTarget, FileInfo, FileItem, FileList};
-pub use user::{StorageQuota, UserInfo};
-pub use share::{ShareItem, ShareUpdateProps};
 pub use dav::{DavAccount, DavListResponse};
+pub use file::{DeleteTarget, FileInfo, FileItem, FileList};
+pub use share::{ShareItem, ShareUpdateProps};
+pub use user::{StorageQuota, UserInfo};
 
 // Submodules
 pub mod auth;
+pub mod dav;
+pub mod download;
 pub mod file;
 pub mod share;
-pub mod download;
 pub mod user;
-pub mod dav;
 
 /// Unified Cloudreve API client
 ///
@@ -61,7 +61,10 @@ impl CloudreveAPI {
     /// Useful when the version is already known (e.g., from cached token).
     pub fn with_version(base_url: &str, version: ApiVersion) -> Result<Self, Error> {
         let base_url = base_url.trim_end_matches('/').to_string();
-        debug!("Creating CloudreveAPI for {} with version {:?}", base_url, version);
+        debug!(
+            "Creating CloudreveAPI for {} with version {:?}",
+            base_url, version
+        );
 
         // Use a blocking version since we already know the version
         let inner = match version {

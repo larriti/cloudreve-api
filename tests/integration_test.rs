@@ -5,7 +5,6 @@ use cloudreve_api::{CloudreveClient, Result};
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tokio;
 
     #[tokio::test]
     async fn test_client_creation() -> Result<()> {

@@ -1,7 +1,7 @@
+use crate::Error;
+use crate::api::v4::ApiV4Client;
 use crate::api::v4::models::*;
 use crate::api::v4::uri::path_to_uri;
-use crate::api::v4::ApiV4Client;
-use crate::Error;
 use serde_json::Value;
 
 /// Share management methods

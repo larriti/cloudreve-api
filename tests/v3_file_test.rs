@@ -41,12 +41,11 @@ mod v3_file_tests {
             session_id: "session123".to_string(),
             chunk_size: 5242880,
             expires: 3600,
-            upload_urls: vec!["https://example.com/upload/0".to_string()],
         };
 
         assert_eq!(session.session_id, "session123");
         assert_eq!(session.chunk_size, 5242880);
-        assert_eq!(session.upload_urls.len(), 1);
+        assert_eq!(session.expires, 3600);
     }
 
     #[test]
@@ -84,7 +83,7 @@ mod v3_file_tests {
                 name: "Default storage policy".to_string(),
                 policy_type: "local".to_string(),
                 max_size: 0,
-                file_type: vec![],
+                file_type: None,
             },
         };
 

@@ -1,10 +1,10 @@
 //! File operations for CloudreveAPI
 
-use crate::api::v4::uri::path_to_uri;
-use crate::client::UnifiedClient;
+use crate::Error;
 use crate::api::v3::models as v3_models;
 use crate::api::v4::models as v4_models;
-use crate::Error;
+use crate::api::v4::uri::path_to_uri;
+use crate::client::UnifiedClient;
 use log::debug;
 
 /// File operation methods for CloudreveAPI
@@ -12,7 +12,12 @@ impl super::CloudreveAPI {
     /// List files in a directory
     ///
     /// Returns a unified file list regardless of API version.
-    pub async fn list_files(&self, path: &str, page: Option<u32>, page_size: Option<u32>) -> Result<FileList, Error> {
+    pub async fn list_files(
+        &self,
+        path: &str,
+        page: Option<u32>,
+        page_size: Option<u32>,
+    ) -> Result<FileList, Error> {
         debug!("Listing files in: {}", path);
 
         match &self.inner {
@@ -77,7 +82,9 @@ impl super::CloudreveAPI {
                 };
 
                 let parent_path = if normalized_path == "/" {
-                    return Err(Error::InvalidResponse("Cannot delete root directory".to_string()));
+                    return Err(Error::InvalidResponse(
+                        "Cannot delete root directory".to_string(),
+                    ));
                 } else {
                     let pos = normalized_path.rfind('/');
                     match pos {
@@ -93,7 +100,9 @@ impl super::CloudreveAPI {
                 let dir_list = client.list_directory(parent_path).await?;
 
                 // Find the object by name to get its ID and type
-                let obj = dir_list.objects.iter()
+                let obj = dir_list
+                    .objects
+                    .iter()
                     .find(|obj| obj.name == file_name)
                     .ok_or_else(|| Error::InvalidResponse(format!("File not found: {}", path)))?;
 
@@ -356,11 +365,10 @@ impl super::CloudreveAPI {
                         ..Default::default()
                     };
                     match client.list_files(&list_request).await {
-                        Ok(response) => {
-                            response.storage_policy
-                                .map(|p| p.id)
-                                .unwrap_or_else(|| "default".to_string())
-                        }
+                        Ok(response) => response
+                            .storage_policy
+                            .map(|p| p.id)
+                            .unwrap_or_else(|| "default".to_string()),
                         Err(_) => "default".to_string(),
                     }
                 };
@@ -378,7 +386,9 @@ impl super::CloudreveAPI {
                 let session = client.create_upload_session(&request).await?;
 
                 // Upload content
-                client.upload_file_chunk(&session.session_id, 0, &content).await?;
+                client
+                    .upload_file_chunk(&session.session_id, 0, &content)
+                    .await?;
 
                 Ok(())
             }
@@ -414,7 +424,10 @@ impl super::CloudreveAPI {
 
                 let file_name = normalized_path.rsplit('/').next().unwrap_or("");
 
-                debug!("V3: Looking for file '{}' in parent directory '{}'", file_name, parent_path);
+                debug!(
+                    "V3: Looking for file '{}' in parent directory '{}'",
+                    file_name, parent_path
+                );
 
                 // List directory to find file ID
                 let dir_list = client.list_directory(parent_path).await?;
@@ -449,7 +462,9 @@ impl super::CloudreveAPI {
                 if let Some(first_url) = response.urls.first() {
                     Ok(first_url.url.clone())
                 } else {
-                    Err(Error::InvalidResponse("No download URL returned".to_string()))
+                    Err(Error::InvalidResponse(
+                        "No download URL returned".to_string(),
+                    ))
                 }
             }
         }
@@ -462,16 +477,12 @@ impl super::CloudreveAPI {
         debug!("Restoring file: {}", path);
 
         match &self.inner {
-            UnifiedClient::V3(_) => {
-                Err(Error::UnsupportedFeature(
-                    "restore from trash".to_string(),
-                    "v3".to_string(),
-                ))
-            }
+            UnifiedClient::V3(_) => Err(Error::UnsupportedFeature(
+                "restore from trash".to_string(),
+                "v3".to_string(),
+            )),
             UnifiedClient::V4(client) => {
-                let request = v4_models::RestoreFileRequest {
-                    uris: vec![path],
-                };
+                let request = v4_models::RestoreFileRequest { uris: vec![path] };
                 client.restore_from_trash(&request).await?;
                 Ok(())
             }
@@ -545,20 +556,24 @@ impl FileList {
     /// Get files and folders
     pub fn items(&self) -> Vec<FileItem> {
         match self {
-            FileList::V3(d) => {
-                d.objects.iter().map(|obj| FileItem {
+            FileList::V3(d) => d
+                .objects
+                .iter()
+                .map(|obj| FileItem {
                     name: obj.name.clone(),
                     is_folder: obj.object_type == "dir",
                     size: obj.size,
-                }).collect()
-            }
-            FileList::V4(r) => {
-                r.files.iter().map(|file| FileItem {
+                })
+                .collect(),
+            FileList::V4(r) => r
+                .files
+                .iter()
+                .map(|file| FileItem {
                     name: file.name.clone(),
                     is_folder: matches!(file.r#type, v4_models::FileType::Folder),
                     size: file.size,
-                }).collect()
-            }
+                })
+                .collect(),
         }
     }
 
