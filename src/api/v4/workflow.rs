@@ -16,9 +16,9 @@ impl ApiV4Client {
                 message: response.msg,
             });
         }
-        response.data.ok_or_else(|| {
-            Error::InvalidResponse("Missing data in API response".to_string())
-        })
+        response
+            .data
+            .ok_or_else(|| Error::InvalidResponse("Missing data in API response".to_string()))
     }
 
     pub async fn select_download_files(
@@ -35,9 +35,9 @@ impl ApiV4Client {
                 message: response.msg,
             });
         }
-        response.data.ok_or_else(|| {
-            Error::InvalidResponse("Missing data in API response".to_string())
-        })
+        response
+            .data
+            .ok_or_else(|| Error::InvalidResponse("Missing data in API response".to_string()))
     }
 
     pub async fn cancel_download_task(&self, task_id: &str) -> Result<(), Error> {
@@ -69,9 +69,9 @@ impl ApiV4Client {
                 message: response.msg,
             });
         }
-        response.data.ok_or_else(|| {
-            Error::InvalidResponse("Missing data in API response".to_string())
-        })
+        response
+            .data
+            .ok_or_else(|| Error::InvalidResponse("Missing data in API response".to_string()))
     }
 
     pub async fn get_task_progress(&self, task_id: &str) -> Result<Progress, Error> {
@@ -83,12 +83,15 @@ impl ApiV4Client {
                 message: response.msg,
             });
         }
-        response.data.ok_or_else(|| {
-            Error::InvalidResponse("Missing data in API response".to_string())
-        })
+        response
+            .data
+            .ok_or_else(|| Error::InvalidResponse("Missing data in API response".to_string()))
     }
 
-    pub async fn create_archive(&self, request: &CreateArchiveRequest<'_>) -> Result<TaskResponse, Error> {
+    pub async fn create_archive(
+        &self,
+        request: &CreateArchiveRequest<'_>,
+    ) -> Result<TaskResponse, Error> {
         let response: ApiResponse<TaskResponse> = self.post("/workflow/archive", request).await?;
         if response.code != 0 {
             return Err(Error::Api {
@@ -96,9 +99,9 @@ impl ApiV4Client {
                 message: response.msg,
             });
         }
-        response.data.ok_or_else(|| {
-            Error::InvalidResponse("Missing data in API response".to_string())
-        })
+        response
+            .data
+            .ok_or_else(|| Error::InvalidResponse("Missing data in API response".to_string()))
     }
 
     pub async fn extract_archive(
@@ -112,9 +115,9 @@ impl ApiV4Client {
                 message: response.msg,
             });
         }
-        response.data.ok_or_else(|| {
-            Error::InvalidResponse("Missing data in API response".to_string())
-        })
+        response
+            .data
+            .ok_or_else(|| Error::InvalidResponse("Missing data in API response".to_string()))
     }
 
     pub async fn relocate(&self, request: &RelocateRequest<'_>) -> Result<TaskResponse, Error> {
@@ -125,9 +128,9 @@ impl ApiV4Client {
                 message: response.msg,
             });
         }
-        response.data.ok_or_else(|| {
-            Error::InvalidResponse("Missing data in API response".to_string())
-        })
+        response
+            .data
+            .ok_or_else(|| Error::InvalidResponse("Missing data in API response".to_string()))
     }
 
     pub async fn import(&self, request: &ImportRequest<'_>) -> Result<TaskResponse, Error> {
@@ -138,8 +141,8 @@ impl ApiV4Client {
                 message: response.msg,
             });
         }
-        response.data.ok_or_else(|| {
-            Error::InvalidResponse("Missing data in API response".to_string())
-        })
+        response
+            .data
+            .ok_or_else(|| Error::InvalidResponse("Missing data in API response".to_string()))
     }
 }
