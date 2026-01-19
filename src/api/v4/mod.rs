@@ -67,13 +67,31 @@ impl ApiV4Client {
         let mut request = self.http_client.get(&url);
 
         if let Some(token) = &self.token {
-            // request = request.header("Authorization", format!("Bearer {}", token));
             request = request.bearer_auth(token);
         }
         debug!("GET URL: {}", url);
 
         let response = request.send().await?;
         let status = response.status();
+
+        // Check for error status codes first
+        if !status.is_success() {
+            let raw_text = response.text().await?;
+            // Try to parse as API error response
+            if let Ok(api_response) = serde_json::from_str::<crate::ApiResponse<serde_json::Value>>(&raw_text) {
+                if api_response.code != 0 {
+                    return Err(Error::Api {
+                        code: api_response.code,
+                        message: api_response.msg,
+                    });
+                }
+            }
+            // If not a standard API response, return error with status code
+            return Err(Error::Api {
+                code: status.as_u16() as i32,
+                message: raw_text.trim().to_string(),
+            });
+        }
 
         // Get raw response text for better error reporting
         let raw_text = response.text().await?;
@@ -99,7 +117,6 @@ impl ApiV4Client {
         let mut request = self.http_client.post(&url).json(body);
 
         if let Some(token) = &self.token {
-            // request = request.header("Authorization", format!("Bearer {}", token));
             request = request.bearer_auth(token);
         }
 
@@ -108,7 +125,23 @@ impl ApiV4Client {
         let response = request.send().await?;
         let status = response.status();
 
-        // Get raw response text for better error reporting
+        // Check for error status codes first
+        if !status.is_success() {
+            let raw_text = response.text().await?;
+            if let Ok(api_response) = serde_json::from_str::<crate::ApiResponse<serde_json::Value>>(&raw_text) {
+                if api_response.code != 0 {
+                    return Err(Error::Api {
+                        code: api_response.code,
+                        message: api_response.msg,
+                    });
+                }
+            }
+            return Err(Error::Api {
+                code: status.as_u16() as i32,
+                message: raw_text.trim().to_string(),
+            });
+        }
+
         let raw_text = response.text().await?;
 
         match serde_json::from_str::<T>(&raw_text) {
@@ -132,7 +165,6 @@ impl ApiV4Client {
         let mut request = self.http_client.put(&url).json(body);
 
         if let Some(token) = &self.token {
-            // request = request.header("Authorization", format!("Bearer {}", token));
             request = request.bearer_auth(token);
         }
         debug!("PUT URL: {}", url);
@@ -140,7 +172,23 @@ impl ApiV4Client {
         let response = request.send().await?;
         let status = response.status();
 
-        // Get raw response text for better error reporting
+        // Check for error status codes first
+        if !status.is_success() {
+            let raw_text = response.text().await?;
+            if let Ok(api_response) = serde_json::from_str::<crate::ApiResponse<serde_json::Value>>(&raw_text) {
+                if api_response.code != 0 {
+                    return Err(Error::Api {
+                        code: api_response.code,
+                        message: api_response.msg,
+                    });
+                }
+            }
+            return Err(Error::Api {
+                code: status.as_u16() as i32,
+                message: raw_text.trim().to_string(),
+            });
+        }
+
         let raw_text = response.text().await?;
 
         match serde_json::from_str::<T>(&raw_text) {
@@ -163,7 +211,6 @@ impl ApiV4Client {
         let mut request = self.http_client.patch(&url).json(body);
 
         if let Some(token) = &self.token {
-            // request = request.header("Authorization", format!("Bearer {}", token));
             request = request.bearer_auth(token);
         }
         debug!("PATCH URL: {}", url);
@@ -171,7 +218,23 @@ impl ApiV4Client {
         let response = request.send().await?;
         let status = response.status();
 
-        // Get raw response text for better error reporting
+        // Check for error status codes first
+        if !status.is_success() {
+            let raw_text = response.text().await?;
+            if let Ok(api_response) = serde_json::from_str::<crate::ApiResponse<serde_json::Value>>(&raw_text) {
+                if api_response.code != 0 {
+                    return Err(Error::Api {
+                        code: api_response.code,
+                        message: api_response.msg,
+                    });
+                }
+            }
+            return Err(Error::Api {
+                code: status.as_u16() as i32,
+                message: raw_text.trim().to_string(),
+            });
+        }
+
         let raw_text = response.text().await?;
 
         match serde_json::from_str::<T>(&raw_text) {
@@ -195,7 +258,6 @@ impl ApiV4Client {
         let mut request = self.http_client.delete(&url);
 
         if let Some(token) = &self.token {
-            // request = request.header("Authorization", format!("Bearer {}", token));
             request = request.bearer_auth(token);
         }
         debug!("DELETE URL: {}", url);
@@ -203,7 +265,23 @@ impl ApiV4Client {
         let response = request.send().await?;
         let status = response.status();
 
-        // Get raw response text for better error reporting
+        // Check for error status codes first
+        if !status.is_success() {
+            let raw_text = response.text().await?;
+            if let Ok(api_response) = serde_json::from_str::<crate::ApiResponse<serde_json::Value>>(&raw_text) {
+                if api_response.code != 0 {
+                    return Err(Error::Api {
+                        code: api_response.code,
+                        message: api_response.msg,
+                    });
+                }
+            }
+            return Err(Error::Api {
+                code: status.as_u16() as i32,
+                message: raw_text.trim().to_string(),
+            });
+        }
+
         let raw_text = response.text().await?;
 
         match serde_json::from_str::<T>(&raw_text) {

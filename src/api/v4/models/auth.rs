@@ -163,10 +163,14 @@ pub struct CaptchaResponse {
 /// Login preparation data
 #[derive(Debug, Deserialize)]
 pub struct LoginPreparation {
+    #[serde(default)]
     pub webauthn_enabled: bool,
-    pub sso_enabled: bool,
+    #[serde(default)]
+    pub sso_enabled: Option<bool>,
+    #[serde(default)]
     pub password_enabled: bool,
-    pub qq_enabled: bool,
+    #[serde(default)]
+    pub qq_enabled: Option<bool>,
 }
 
 /// OpenID preparation request

@@ -1,0 +1,39 @@
+# Cloudreve API 集成测试配置
+# 复制此文件为 test_config.toml 并填入你的测试环境信息
+
+[environments.v3]
+# V3 API 测试环境
+base_url = "https://your-v3-instance.com"
+username = "test_user@example.com"
+password = "your_password_here"
+# 可选：2FA 测试用的 OTP 密钥
+# otp_secret = "JBSWY3DPEHPK3PXP"
+
+[environments.v4]
+# V4 API 测试环境
+base_url = "https://your-v4-instance.com"
+username = "test_user@example.com"
+password = "your_password_here"
+# 可选：2FA 测试用的 OTP 密钥
+# otp_secret = "JBSWY3DPEHPK3PXP"
+
+[validation]
+# OpenAPI 验证设置
+check_openapi_compliance = true
+# 严格模式：任何与 OpenAPI 规范不匹配都会导致测试失败
+strict_mode = false
+# 允许响应包含 OpenAPI 规范中未定义的字段
+allow_extra_fields = true
+
+[general]
+# 测试超时时间（秒）
+timeout = 300
+# 并行测试执行
+parallel = true
+# 详细输出
+verbose = true
+
+[reporting]
+# 报告格式
+output_format = ["terminal", "json"]
+json_report_path = "test-results/results.json"

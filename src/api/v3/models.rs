@@ -157,9 +157,28 @@ pub struct StorageInfo {
 }
 
 /// Share link information for v3 API
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Default)]
 pub struct Share {
+    #[serde(default)]
     pub key: String,
+    #[serde(default)]
+    pub password: String,
+    #[serde(default)]
+    pub is_dir: bool,
+    #[serde(default)]
+    pub downloads: i64,
+    #[serde(default)]
+    pub remain_downloads: i64,
+    #[serde(default)]
+    pub expire: i64,
+    #[serde(default)]
+    pub preview: bool,
+    #[serde(default)]
+    pub owner_id: String,
+    #[serde(default)]
+    pub owner_nick: String,
+    #[serde(default)]
+    pub created_at: String,
 }
 
 /// Share request for v3 API
@@ -210,6 +229,8 @@ pub struct SiteConfig {
     pub app_promotion: bool,
     #[serde(default)]
     pub wopi_exts: Option<Value>,
+    #[serde(default)]
+    pub direct_link_batch_size: i64,
 }
 
 /// Login request for v3 API

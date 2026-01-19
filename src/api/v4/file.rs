@@ -63,7 +63,9 @@ impl ApiV4Client {
     }
 
     pub async fn get_file_info(&self, file_path: &str) -> Result<File, Error> {
-        let response: ApiResponse<File> = self.get(&format!("/file/{}", file_path)).await?;
+        // URI encode the path for V4 API, use /file/info endpoint
+        let uri = path_to_uri(file_path);
+        let response: ApiResponse<File> = self.get(&format!("/file/info?uri={}", uri)).await?;
         match response.data {
             Some(data) => Ok(data),
             None => Err(Error::InvalidResponse(format!(
@@ -100,14 +102,32 @@ impl ApiV4Client {
         file_path: &str,
         request: &RenameFileRequest<'_>,
     ) -> Result<(), Error> {
-        let _: ApiResponse<()> = self
-            .put(&format!("/file/rename/{}", file_path), request)
-            .await?;
-        Ok(())
+        // V4 API may not have /file/rename endpoint, use /file/move instead
+        // Extract parent directory and construct new path
+        let uri = path_to_uri(file_path);
+        let new_uri = if let Some(parent) = file_path.rsplit('/').skip(1).next() {
+            if parent.is_empty() {
+                // Root directory
+                path_to_uri(&format!("/{}", request.name))
+            } else {
+                path_to_uri(&format!("{}/{}", parent, request.name))
+            }
+        } else {
+            path_to_uri(&format!("/{}", request.name))
+        };
+
+        let move_req = MoveFileRequest {
+            from: &uri,
+            to: &new_uri,
+        };
+        self.move_file(&move_req).await
     }
 
     pub async fn delete_file(&self, file_path: &str) -> Result<(), Error> {
-        let _: ApiResponse<()> = self.delete(&format!("/file/{}", file_path)).await?;
+        // URI encode the path for V4 API
+        let uri = path_to_uri(file_path);
+        let url = format!("/file?uri={}", uri);
+        let _: ApiResponse<()> = self.delete(&url).await?;
         Ok(())
     }
 
