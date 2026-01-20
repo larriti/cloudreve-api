@@ -41,6 +41,96 @@ impl super::CloudreveAPI {
         }
     }
 
+    /// List all files in a directory with automatic pagination
+    ///
+    /// This method automatically fetches all pages for V4 API and combines them.
+    /// For V3 API, it returns the single page result (no pagination support).
+    pub async fn list_files_all(
+        &self,
+        path: &str,
+        page_size: Option<u32>,
+    ) -> Result<FileListAll, Error> {
+        debug!("Listing all files in: {} (with pagination)", path);
+
+        let page_size = page_size.unwrap_or(500); // Default to 500 items per page
+
+        match &self.inner {
+            UnifiedClient::V3(client) => {
+                // V3 doesn't support pagination
+                let dir_list = client.list_directory(path).await?;
+                Ok(FileListAll::V3(dir_list))
+            }
+            UnifiedClient::V4(client) => {
+                let mut all_files = Vec::new();
+                let mut parent: Option<v4_models::File> = None;
+                let mut storage_policy: Option<v4_models::StoragePolicy> = None;
+                #[allow(unused_assignments)]
+                let mut pagination: Option<v4_models::PaginationResults> = None;
+                let mut next_token: Option<String> = None;
+                let mut page_num = 1;
+
+                loop {
+                    let request = v4_models::ListFilesRequest {
+                        path,
+                        page: Some(page_num),
+                        page_size: Some(page_size),
+                        order_by: None,
+                        order_direction: None,
+                        next_page_token: next_token.as_deref(),
+                    };
+                    let list_response = client.list_files(&request).await?;
+
+                    // Store parent and storage_policy from first response
+                    if parent.is_none() {
+                        parent = Some(list_response.parent.clone());
+                        storage_policy = list_response.storage_policy.clone();
+                    }
+
+                    // Collect files
+                    all_files.extend(list_response.files);
+
+                    // Check if there are more pages (before moving pagination)
+                    next_token = list_response.pagination.next_token.clone();
+                    let has_more = next_token.is_some();
+
+                    // Store pagination info from last response
+                    pagination = Some(list_response.pagination);
+
+                    if !has_more {
+                        break;
+                    }
+
+                    page_num += 1;
+                    debug!(
+                        "Fetching page {} (next_token: {})",
+                        page_num,
+                        next_token.as_ref().unwrap()
+                    );
+                }
+
+                let parent = parent.expect("parent should always be set after first API call");
+                let pagination = pagination.expect("should have at least one response");
+                let combined_response = v4_models::ListResponse {
+                    files: all_files,
+                    parent,
+                    pagination,
+                    props: v4_models::NavigatorProps {
+                        capability: String::new(),
+                        max_page_size: page_size as i32,
+                        order_by_options: Vec::new(),
+                        order_direction_options: Vec::new(),
+                    },
+                    context_hint: String::new(),
+                    mixed_type: false,
+                    storage_policy,
+                    view: None,
+                };
+
+                Ok(FileListAll::V4(Box::new(combined_response)))
+            }
+        }
+    }
+
     /// Create a directory
     ///
     /// Creates a new directory at the specified path.
@@ -251,8 +341,12 @@ impl super::CloudreveAPI {
                 Ok(())
             }
             UnifiedClient::V4(client) => {
-                let request = v4_models::RenameFileRequest { name: new_name };
-                client.rename_file(path, &request).await?;
+                let uri = path_to_uri(path);
+                let request = v4_models::RenameFileRequest {
+                    uri: uri.as_str(),
+                    new_name,
+                };
+                let _ = client.rename_file(&request).await?;
                 Ok(())
             }
         }
@@ -316,12 +410,68 @@ impl super::CloudreveAPI {
                 Ok(())
             }
             UnifiedClient::V4(client) => {
-                let request = v4_models::MoveFileRequest {
-                    from: src,
-                    to: dest,
+                // V4 API: Check if this is a rename operation (same directory)
+                // Extract source directory and filename
+                let src_normalized = if src.ends_with('/') && src != "/" {
+                    &src[..src.len() - 1]
+                } else {
+                    src
                 };
-                client.move_file(&request).await?;
-                Ok(())
+
+                let dest_normalized = if dest.ends_with('/') && dest != "/" {
+                    &dest[..dest.len() - 1]
+                } else {
+                    dest
+                };
+
+                let src_dir = if let Some(pos) = src_normalized.rfind('/') {
+                    if pos == 0 {
+                        "/"
+                    } else {
+                        &src_normalized[..pos]
+                    }
+                } else {
+                    "/"
+                };
+
+                let dest_dir = if let Some(pos) = dest_normalized.rfind('/') {
+                    if pos == 0 {
+                        "/"
+                    } else {
+                        &dest_normalized[..pos]
+                    }
+                } else {
+                    "/"
+                };
+
+                let src_name = src_normalized.rsplit('/').next().unwrap_or("");
+                let dest_name = dest_normalized.rsplit('/').next().unwrap_or("");
+
+                // If same directory, use rename operation
+                if src_dir == dest_dir && src_name != dest_name {
+                    debug!(
+                        "Detected rename operation within same directory: {} -> {}",
+                        src, dest
+                    );
+                    let src_uri = path_to_uri(src);
+                    let request = v4_models::RenameFileRequest {
+                        uri: src_uri.as_str(),
+                        new_name: dest_name,
+                    };
+                    let _ = client.rename_file(&request).await?;
+                    Ok(())
+                } else {
+                    // Different directory, use move operation (dest is treated as directory)
+                    let src_uri = path_to_uri(src);
+                    let dest_uri = path_to_uri(dest);
+                    let request = v4_models::MoveFileRequest {
+                        uris: vec![src_uri.as_str()],
+                        dst: dest_uri.as_str(),
+                        copy: None,
+                    };
+                    client.move_file(&request).await?;
+                    Ok(())
+                }
             }
         }
     }
@@ -383,12 +533,145 @@ impl super::CloudreveAPI {
                 Ok(())
             }
             UnifiedClient::V4(client) => {
-                let request = v4_models::CopyFileRequest {
-                    from: src,
-                    to: dest,
+                // Parse source and destination paths
+                let src_normalized = if src.ends_with('/') && src != "/" {
+                    &src[..src.len() - 1]
+                } else {
+                    src
                 };
-                client.copy_file(&request).await?;
-                Ok(())
+                let dest_normalized = if dest.ends_with('/') && dest != "/" {
+                    &dest[..dest.len() - 1]
+                } else {
+                    dest
+                };
+
+                // Extract source directory and file name
+                let src_dir = if let Some(pos) = src_normalized.rfind('/') {
+                    if pos == 0 {
+                        "/"
+                    } else {
+                        &src_normalized[..pos]
+                    }
+                } else {
+                    "/"
+                };
+                let src_name = src_normalized.rsplit('/').next().unwrap_or("");
+
+                // Extract destination directory and file name
+                // For V4 API, the dst parameter should be the target directory URI
+                // If dest ends with a filename (different from src), we need to handle it specially
+                let dest_dir = if let Some(pos) = dest_normalized.rfind('/') {
+                    if pos == 0 {
+                        "/"
+                    } else {
+                        &dest_normalized[..pos]
+                    }
+                } else {
+                    "/"
+                };
+                let dest_name = dest_normalized.rsplit('/').next().unwrap_or("");
+
+                let src_uri = path_to_uri(src);
+                let dest_dir_uri = path_to_uri(dest_dir);
+
+                // Check if this is a "copy and rename" operation (same directory, different name)
+                if src_dir == dest_dir && src_name != dest_name && !dest_name.is_empty() {
+                    // V4 API doesn't support copy+rename in one operation
+                    // Strategy: Use a temporary directory as an intermediate step
+                    debug!(
+                        "Detected copy+rename operation in same directory: {} -> {}",
+                        src, dest
+                    );
+
+                    // Step 0: If destination file exists, delete it first
+                    let dest_path = format!("{}/{}", dest_dir.trim_end_matches('/'), dest_name);
+                    let dest_uri = path_to_uri(&dest_path);
+                    if client.get_file_info(dest_uri.as_str()).await.is_err() {
+                        // File doesn't exist, continue
+                    } else {
+                        // File exists, delete it
+                        debug!("Destination file exists, deleting: {}", dest_path);
+                        let delete_request = v4_models::DeleteFileRequest {
+                            uris: vec![dest_uri.as_str()],
+                            unlink: None,
+                            skip_soft_delete: None,
+                        };
+                        let _: Result<v4_models::ApiResponse<()>, _> =
+                            client.delete_with_body("/file", &delete_request).await;
+                    }
+
+                    // Step 1: Create a temporary directory
+                    let temp_dir_name = format!(".temp_copy_{}", std::process::id());
+                    let temp_dir_path =
+                        format!("{}/{}", dest_dir.trim_end_matches('/'), temp_dir_name);
+                    let _ = client.create_directory(&temp_dir_path).await;
+
+                    // Step 2: Copy to the temporary directory
+                    let temp_dir_uri = path_to_uri(&temp_dir_path);
+                    let copy_request = v4_models::CopyFileRequest {
+                        uris: vec![src_uri.as_str()],
+                        dst: temp_dir_uri.as_str(),
+                    };
+                    client.copy_file(&copy_request).await?;
+
+                    // Step 3: Rename the file in temporary directory to a unique name
+                    let temp_file_old_uri = path_to_uri(&format!(
+                        "{}/{}",
+                        temp_dir_path.trim_end_matches('/'),
+                        src_name
+                    ));
+                    let temp_file_new_name = format!("{}_copy", src_name);
+                    let rename_request = v4_models::RenameFileRequest {
+                        uri: temp_file_old_uri.as_str(),
+                        new_name: temp_file_new_name.as_str(),
+                    };
+                    let _ = client.rename_file(&rename_request).await?;
+
+                    // Step 4: Move from temp directory to destination directory
+                    let temp_file_new_uri = path_to_uri(&format!(
+                        "{}/{}",
+                        temp_dir_path.trim_end_matches('/'),
+                        temp_file_new_name
+                    ));
+                    let move_request = v4_models::MoveFileRequest {
+                        uris: vec![temp_file_new_uri.as_str()],
+                        dst: dest_dir_uri.as_str(),
+                        copy: None,
+                    };
+                    client.move_file(&move_request).await?;
+
+                    // Step 5: Rename to the final destination name
+                    let moved_uri = path_to_uri(&format!(
+                        "{}/{}",
+                        dest_dir.trim_end_matches('/'),
+                        temp_file_new_name
+                    ));
+                    let final_rename_request = v4_models::RenameFileRequest {
+                        uri: moved_uri.as_str(),
+                        new_name: dest_name,
+                    };
+                    let _ = client.rename_file(&final_rename_request).await?;
+
+                    // Step 6: Clean up temporary directory
+                    let temp_dir_uri_for_delete = path_to_uri(&temp_dir_path);
+                    let delete_request = v4_models::DeleteFileRequest {
+                        uris: vec![temp_dir_uri_for_delete.as_str()],
+                        unlink: None,
+                        skip_soft_delete: None,
+                    };
+                    let _: Result<v4_models::ApiResponse<()>, _> =
+                        client.delete_with_body("/file", &delete_request).await;
+
+                    Ok(())
+                } else {
+                    // Standard copy operation to different directory
+                    let request = v4_models::CopyFileRequest {
+                        uris: vec![src_uri.as_str()],
+                        dst: dest_dir_uri.as_str(),
+                    };
+                    client.copy_file(&request).await?;
+                    Ok(())
+                }
             }
         }
     }
@@ -726,6 +1009,114 @@ impl FileList {
     /// Get total count
     pub fn total_count(&self) -> usize {
         self.items().len()
+    }
+
+    /// Get next page token (V4 only)
+    pub fn next_token(&self) -> Option<String> {
+        match self {
+            FileList::V3(_) => None,
+            FileList::V4(r) => r.pagination.next_token.clone(),
+        }
+    }
+
+    /// Get total items count from pagination (V4 only)
+    pub fn total_items(&self) -> Option<i64> {
+        match self {
+            FileList::V3(_) => None,
+            FileList::V4(r) => r.pagination.total_items,
+        }
+    }
+
+    /// Check if there are more pages (V4 only)
+    pub fn has_more_pages(&self) -> bool {
+        self.next_token().is_some()
+    }
+}
+
+/// Unified file list with automatic pagination support
+///
+/// This variant contains all pages combined for V4 API.
+pub enum FileListAll {
+    V3(v3_models::DirectoryList),
+    V4(Box<v4_models::ListResponse>),
+}
+
+impl FileListAll {
+    /// Get parent directory name
+    pub fn parent_name(&self) -> String {
+        match self {
+            FileListAll::V3(d) => d.parent.clone(),
+            FileListAll::V4(r) => r.parent.name.clone(),
+        }
+    }
+
+    /// Get parent directory ID
+    pub fn parent_id(&self) -> String {
+        match self {
+            FileListAll::V3(d) => d.parent.clone(),
+            FileListAll::V4(r) => r.parent.id.clone(),
+        }
+    }
+
+    /// Get parent directory path
+    pub fn parent_path(&self) -> String {
+        match self {
+            FileListAll::V3(_) => String::new(),
+            FileListAll::V4(r) => r.parent.path.clone(),
+        }
+    }
+
+    /// Get storage policy ID (V4 only)
+    pub fn storage_policy_id(&self) -> Option<String> {
+        match self {
+            FileListAll::V3(_) => None,
+            FileListAll::V4(r) => r.storage_policy.as_ref().map(|p| p.id.clone()),
+        }
+    }
+
+    /// Get storage policy name (V4 only)
+    pub fn storage_policy_name(&self) -> Option<String> {
+        match self {
+            FileListAll::V3(_) => None,
+            FileListAll::V4(r) => r.storage_policy.as_ref().map(|p| p.name.clone()),
+        }
+    }
+
+    /// Get files and folders (all pages combined)
+    pub fn items(&self) -> Vec<FileItem> {
+        match self {
+            FileListAll::V3(d) => d
+                .objects
+                .iter()
+                .map(|obj| FileItem {
+                    name: obj.name.clone(),
+                    is_folder: obj.object_type == "dir",
+                    size: obj.size,
+                })
+                .collect(),
+            FileListAll::V4(r) => r
+                .files
+                .iter()
+                .map(|file| FileItem {
+                    name: file.name.clone(),
+                    is_folder: matches!(file.r#type, v4_models::FileType::Folder),
+                    size: file.size,
+                })
+                .collect(),
+        }
+    }
+
+    /// Get total count (all items)
+    pub fn total_count(&self) -> usize {
+        self.items().len()
+    }
+
+    /// Get total items count from pagination (V4 only)
+    pub fn total_items(&self) -> Option<i64> {
+        match self {
+            FileListAll::V3(_) => None,
+            FileListAll::V4(r) => r.pagination.total_items,
+        }
     }
 }
 

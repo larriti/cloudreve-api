@@ -18,7 +18,7 @@ use log::debug;
 // Re-export submodule types for convenience
 pub use auth::{LoginResponse, TokenInfo, V3LoginResponse, V4LoginResponse};
 pub use dav::{DavAccount, DavListResponse};
-pub use file::{DeleteTarget, FileInfo, FileItem, FileList};
+pub use file::{DeleteTarget, FileInfo, FileItem, FileList, FileListAll};
 pub use share::{ShareItem, ShareUpdateProps};
 pub use user::{StorageQuota, UserInfo};
 

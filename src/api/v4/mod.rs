@@ -300,4 +300,56 @@ impl ApiV4Client {
             }
         }
     }
+
+    /// Makes a DELETE request with JSON body to the API
+    pub async fn delete_with_body<T>(
+        &self,
+        endpoint: &str,
+        body: &impl Serialize,
+    ) -> Result<T, Error>
+    where
+        T: serde::de::DeserializeOwned + std::fmt::Debug,
+    {
+        let url = self.get_url(endpoint);
+        let mut request = self.http_client.delete(&url).json(body);
+
+        if let Some(token) = &self.token {
+            request = request.bearer_auth(token);
+        }
+        debug!("DELETE URL: {} with body", url);
+
+        let response = request.send().await?;
+        let status = response.status();
+
+        // Check for error status codes first
+        if !status.is_success() {
+            let raw_text = response.text().await?;
+            if let Ok(api_response) =
+                serde_json::from_str::<crate::ApiResponse<serde_json::Value>>(&raw_text)
+                && api_response.code != 0
+            {
+                return Err(Error::Api {
+                    code: api_response.code,
+                    message: api_response.msg,
+                });
+            }
+            return Err(Error::Api {
+                code: status.as_u16() as i32,
+                message: raw_text.trim().to_string(),
+            });
+        }
+
+        let raw_text = response.text().await?;
+
+        match serde_json::from_str::<T>(&raw_text) {
+            Ok(json) => {
+                debug!("Response status: {}, JSON: {:?}", status, json);
+                Ok(json)
+            }
+            Err(e) => {
+                debug!("JSON parse error: {}, raw response: {}", e, raw_text);
+                Err(Error::Json(e))
+            }
+        }
+    }
 }

@@ -31,8 +31,9 @@ mod file_tests {
     #[tokio::test]
     async fn test_move_file_request_struct() -> Result<()> {
         let _move_request = MoveFileRequest {
-            from: "/old/path",
-            to: "/new/path",
+            uris: vec!["/old/path"],
+            dst: "/new/path",
+            copy: None,
         };
         Ok(())
     }
@@ -40,8 +41,8 @@ mod file_tests {
     #[tokio::test]
     async fn test_copy_file_request_struct() -> Result<()> {
         let _copy_request = CopyFileRequest {
-            from: "/source/path",
-            to: "/dest/path",
+            uris: vec!["/source/path"],
+            dst: "/dest/path",
         };
         Ok(())
     }
@@ -49,7 +50,8 @@ mod file_tests {
     #[tokio::test]
     async fn test_rename_file_request_struct() -> Result<()> {
         let _rename_request = RenameFileRequest {
-            name: "new_name.txt",
+            uri: "/old/path",
+            new_name: "new_name.txt",
         };
         Ok(())
     }

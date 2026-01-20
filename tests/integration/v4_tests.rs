@@ -1,7 +1,7 @@
 //! V4 API 集成测试
 
 use super::common::{TestConfig, TestCredentials, TestResults};
-use cloudreve_api::api::v4::{ApiV4Client, models::*};
+use cloudreve_api::api::v4::{ApiV4Client, models::*, uri::path_to_uri};
 use std::time::Instant;
 
 /// V4 API 测试套件
@@ -165,9 +165,13 @@ impl V4TestSuite {
 
                         // 重命名目录
                         let new_name = format!("{}_renamed", test_dir_name);
+                        let uri = path_to_uri(&test_path);
                         match self
                             .client
-                            .rename_file(&test_path, &RenameFileRequest { name: &new_name })
+                            .rename_file(&RenameFileRequest {
+                                uri: &uri,
+                                new_name: &new_name,
+                            })
                             .await
                         {
                             Ok(_) => {

@@ -88,47 +88,64 @@ impl ApiV4Client {
     }
 
     pub async fn move_file(&self, request: &MoveFileRequest<'_>) -> Result<(), Error> {
-        let _: ApiResponse<()> = self.post("/file/move", request).await?;
-        Ok(())
+        let response: ApiResponse<()> = self.post("/file/move", request).await?;
+        match response.code {
+            0 => Ok(()),
+            code => Err(Error::Api {
+                code,
+                message: response.msg,
+            }),
+        }
     }
 
     pub async fn copy_file(&self, request: &CopyFileRequest<'_>) -> Result<(), Error> {
-        let _: ApiResponse<()> = self.post("/file/copy", request).await?;
-        Ok(())
+        // V4 API uses /file/move endpoint with copy=true for copy operations
+        let move_request = MoveFileRequest {
+            uris: request.uris.clone(),
+            dst: request.dst,
+            copy: Some(true),
+        };
+        let response: ApiResponse<()> = self.post("/file/move", &move_request).await?;
+        match response.code {
+            0 => Ok(()),
+            code => Err(Error::Api {
+                code,
+                message: response.msg,
+            }),
+        }
     }
 
     pub async fn rename_file(
         &self,
-        file_path: &str,
         request: &RenameFileRequest<'_>,
-    ) -> Result<(), Error> {
-        // V4 API may not have /file/rename endpoint, use /file/move instead
-        // Extract parent directory and construct new path
-        let uri = path_to_uri(file_path);
-        let new_uri = if let Some(parent) = file_path.rsplit('/').nth(1) {
-            if parent.is_empty() {
-                // Root directory
-                path_to_uri(&format!("/{}", request.name))
-            } else {
-                path_to_uri(&format!("{}/{}", parent, request.name))
-            }
-        } else {
-            path_to_uri(&format!("/{}", request.name))
-        };
-
-        let move_req = MoveFileRequest {
-            from: &uri,
-            to: &new_uri,
-        };
-        self.move_file(&move_req).await
+    ) -> Result<crate::api::v4::models::File, Error> {
+        let response: ApiResponse<crate::api::v4::models::File> =
+            self.post("/file/rename", request).await?;
+        match response.data {
+            Some(data) => Ok(data),
+            None => Err(Error::InvalidResponse(format!(
+                "API returned no data for rename_file request: {:?}",
+                response
+            ))),
+        }
     }
 
     pub async fn delete_file(&self, file_path: &str) -> Result<(), Error> {
-        // URI encode the path for V4 API
+        // Convert path to URI for V4 API
         let uri = path_to_uri(file_path);
-        let url = format!("/file?uri={}", uri);
-        let _: ApiResponse<()> = self.delete(&url).await?;
-        Ok(())
+        let request = DeleteFileRequest {
+            uris: vec![uri.as_str()],
+            unlink: None,
+            skip_soft_delete: None,
+        };
+        let response: ApiResponse<()> = self.delete_with_body("/file", &request).await?;
+        match response.code {
+            0 => Ok(()),
+            code => Err(Error::Api {
+                code,
+                message: response.msg,
+            }),
+        }
     }
 
     pub async fn create_directory(&self, path: &str) -> Result<(), Error> {
@@ -155,16 +172,28 @@ impl ApiV4Client {
         &self,
         request: &SetFilePermissionRequest<'_>,
     ) -> Result<(), Error> {
-        let _: ApiResponse<()> = self.post("/file/permission", request).await?;
-        Ok(())
+        let response: ApiResponse<()> = self.post("/file/permission", request).await?;
+        match response.code {
+            0 => Ok(()),
+            code => Err(Error::Api {
+                code,
+                message: response.msg,
+            }),
+        }
     }
 
     pub async fn delete_file_permission(&self, path: &str) -> Result<(), Error> {
         let uri = path_to_uri(path);
-        let _: ApiResponse<()> = self
+        let response: ApiResponse<()> = self
             .delete(&format!("/file/permission?uri={}", uri))
             .await?;
-        Ok(())
+        match response.code {
+            0 => Ok(()),
+            code => Err(Error::Api {
+                code,
+                message: response.msg,
+            }),
+        }
     }
 
     pub async fn create_upload_session(
@@ -291,8 +320,14 @@ impl ApiV4Client {
         &self,
         request: &UpdateFileContentRequest<'_>,
     ) -> Result<(), Error> {
-        let _: ApiResponse<()> = self.put("/file/content", request).await?;
-        Ok(())
+        let response: ApiResponse<()> = self.put("/file/content", request).await?;
+        match response.code {
+            0 => Ok(()),
+            code => Err(Error::Api {
+                code,
+                message: response.msg,
+            }),
+        }
     }
 
     pub async fn create_viewer_session(
@@ -322,13 +357,25 @@ impl ApiV4Client {
     }
 
     pub async fn rename_multiple(&self, request: &RenameMultipleRequest<'_>) -> Result<(), Error> {
-        let _: ApiResponse<()> = self.post("/file/rename", request).await?;
-        Ok(())
+        let response: ApiResponse<()> = self.post("/file/rename", request).await?;
+        match response.code {
+            0 => Ok(()),
+            code => Err(Error::Api {
+                code,
+                message: response.msg,
+            }),
+        }
     }
 
     pub async fn move_copy_files(&self, request: &MoveCopyFileRequest<'_>) -> Result<(), Error> {
-        let _: ApiResponse<()> = self.post("/file/move", request).await?;
-        Ok(())
+        let response: ApiResponse<()> = self.post("/file/move", request).await?;
+        match response.code {
+            0 => Ok(()),
+            code => Err(Error::Api {
+                code,
+                message: response.msg,
+            }),
+        }
     }
 
     pub async fn create_download_url(
@@ -366,14 +413,26 @@ impl ApiV4Client {
 
         let converted_request = RestoreFileRequest { uris: uris_refs };
 
-        let _: ApiResponse<()> = self.post("/file/restore", &converted_request).await?;
-        Ok(())
+        let response: ApiResponse<()> = self.post("/file/restore", &converted_request).await?;
+        match response.code {
+            0 => Ok(()),
+            code => Err(Error::Api {
+                code,
+                message: response.msg,
+            }),
+        }
     }
 
     pub async fn force_unlock(&self, path: &str) -> Result<(), Error> {
         let uri = path_to_uri(path);
-        let _: ApiResponse<()> = self.delete(&format!("/file/lock?uri={}", uri)).await?;
-        Ok(())
+        let response: ApiResponse<()> = self.delete(&format!("/file/lock?uri={}", uri)).await?;
+        match response.code {
+            0 => Ok(()),
+            code => Err(Error::Api {
+                code,
+                message: response.msg,
+            }),
+        }
     }
 
     pub async fn patch_metadata(
@@ -383,8 +442,14 @@ impl ApiV4Client {
     ) -> Result<(), Error> {
         let uri = path_to_uri(path);
         let full_url = format!("/file/metadata?uri={}", uri);
-        let _: ApiResponse<()> = self.patch(&full_url, request).await?;
-        Ok(())
+        let response: ApiResponse<()> = self.patch(&full_url, request).await?;
+        match response.code {
+            0 => Ok(()),
+            code => Err(Error::Api {
+                code,
+                message: response.msg,
+            }),
+        }
     }
 
     pub async fn mount_storage_policy(
@@ -394,8 +459,14 @@ impl ApiV4Client {
     ) -> Result<(), Error> {
         let uri = path_to_uri(path);
         let full_url = format!("/file/policy?uri={}", uri);
-        let _: ApiResponse<()> = self.patch(&full_url, request).await?;
-        Ok(())
+        let response: ApiResponse<()> = self.patch(&full_url, request).await?;
+        match response.code {
+            0 => Ok(()),
+            code => Err(Error::Api {
+                code,
+                message: response.msg,
+            }),
+        }
     }
 
     pub async fn update_view_settings(
@@ -405,8 +476,14 @@ impl ApiV4Client {
     ) -> Result<(), Error> {
         let uri = path_to_uri(path);
         let full_url = format!("/file/view?uri={}", uri);
-        let _: ApiResponse<()> = self.patch(&full_url, request).await?;
-        Ok(())
+        let response: ApiResponse<()> = self.patch(&full_url, request).await?;
+        match response.code {
+            0 => Ok(()),
+            code => Err(Error::Api {
+                code,
+                message: response.msg,
+            }),
+        }
     }
 
     pub async fn get_file_activities(

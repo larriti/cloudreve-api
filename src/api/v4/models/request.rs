@@ -21,24 +21,27 @@ pub struct ListFilesRequest<'a> {
     pub next_page_token: Option<&'a str>,
 }
 
-/// Move file request
+/// Move file request (also used for copy with copy=true)
 #[derive(Debug, Serialize)]
 pub struct MoveFileRequest<'a> {
-    pub from: &'a str,
-    pub to: &'a str,
+    pub uris: Vec<&'a str>,
+    pub dst: &'a str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub copy: Option<bool>,
 }
 
 /// Copy file request
 #[derive(Debug, Serialize)]
 pub struct CopyFileRequest<'a> {
-    pub from: &'a str,
-    pub to: &'a str,
+    pub uris: Vec<&'a str>,
+    pub dst: &'a str,
 }
 
 /// Rename file request
 #[derive(Debug, Serialize)]
 pub struct RenameFileRequest<'a> {
-    pub name: &'a str,
+    pub uri: &'a str,
+    pub new_name: &'a str,
 }
 
 /// Set file permission request
@@ -287,6 +290,22 @@ pub struct ImportRequest<'a> {
 #[derive(Debug, Serialize)]
 pub struct SelectDownloadFilesRequest<'a> {
     pub selected_files: Vec<&'a str>,
+}
+
+/// Delete file request
+#[derive(Debug, Serialize)]
+pub struct DeleteFileRequest<'a> {
+    /// List of file paths to delete (will be converted to URI format internally)
+    ///
+    /// Each path can be:
+    /// - Absolute path: "/folder/file.txt"
+    /// - Relative path: "folder/file.txt"
+    /// - Already formatted URI: "cloudreve://my/folder/file.txt"
+    pub uris: Vec<&'a str>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub unlink: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub skip_soft_delete: Option<bool>,
 }
 
 /// Create download request (alias for remote download)
