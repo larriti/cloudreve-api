@@ -93,7 +93,8 @@ mod error_handling_tests {
             match error {
                 Error::Json(_) => {}
                 Error::Http(_) => {}
-                _ => panic!("Expected JSON or HTTP error, got: {:?}", error),
+                Error::Api { .. } => {}
+                _ => panic!("Expected JSON, HTTP, or API error, got: {:?}", error),
             }
         }
 

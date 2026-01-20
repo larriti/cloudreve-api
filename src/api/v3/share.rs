@@ -25,7 +25,7 @@ impl ApiV3Client {
         // If that fails, try to parse as plain string URL
         let url = raw_text.trim();
         // Extract key from URL (e.g., "https://example.com/s/abc123" -> "abc123")
-        let key = url.split('/').last().unwrap_or("").to_string();
+        let key = url.split('/').next_back().unwrap_or("").to_string();
         Ok(Share {
             key,
             ..Default::default()

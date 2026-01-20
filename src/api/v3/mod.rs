@@ -72,13 +72,14 @@ impl ApiV3Client {
         // Check for error status codes first
         if !status.is_success() {
             let raw_text = response.text().await?;
-            if let Ok(api_response) = serde_json::from_str::<ApiResponse<serde_json::Value>>(&raw_text) {
-                if api_response.code != 0 {
-                    return Err(Error::Api {
-                        code: api_response.code,
-                        message: api_response.msg,
-                    });
-                }
+            if let Ok(api_response) =
+                serde_json::from_str::<ApiResponse<serde_json::Value>>(&raw_text)
+                && api_response.code != 0
+            {
+                return Err(Error::Api {
+                    code: api_response.code,
+                    message: api_response.msg,
+                });
             }
             return Err(Error::Api {
                 code: status.as_u16() as i32,
@@ -121,13 +122,14 @@ impl ApiV3Client {
         if !status.is_success() {
             let raw_text = response.text().await?;
             // Try to parse as API error response
-            if let Ok(api_response) = serde_json::from_str::<ApiResponse<serde_json::Value>>(&raw_text) {
-                if api_response.code != 0 {
-                    return Err(Error::Api {
-                        code: api_response.code,
-                        message: api_response.msg,
-                    });
-                }
+            if let Ok(api_response) =
+                serde_json::from_str::<ApiResponse<serde_json::Value>>(&raw_text)
+                && api_response.code != 0
+            {
+                return Err(Error::Api {
+                    code: api_response.code,
+                    message: api_response.msg,
+                });
             }
             // If not a standard API response, return error with status code
             return Err(Error::Api {

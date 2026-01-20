@@ -23,7 +23,7 @@ impl super::CloudreveAPI {
                 let request = v4_models::CreateDownloadUrlRequest {
                     uris: vec![path],
                     download: Some(true),
-                    redirect: Some(true),
+                    redirect: Some(false), // 不自动重定向，返回 JSON 响应
                     entity: None,
                     use_primary_site_url: None,
                     skip_error: None,

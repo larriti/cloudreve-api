@@ -1,6 +1,6 @@
 [package]
 name = "cloudreve-api"
-version = "0.4.0"
+version = "0.4.1"
 edition.workspace = true
 description = "A Rust library for interacting with Cloudreve API"
 license.workspace = true

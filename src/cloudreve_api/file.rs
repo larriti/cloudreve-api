@@ -198,13 +198,52 @@ impl super::CloudreveAPI {
 
         match &self.inner {
             UnifiedClient::V3(client) => {
-                // V3 needs source items split into dirs and items
-                let is_dir = path.ends_with('/');
+                // V3 needs object ID, not path. Get the ID from parent directory listing.
+                let normalized_path = if path.ends_with('/') && path != "/" {
+                    &path[..path.len() - 1]
+                } else {
+                    path
+                };
+
+                let parent_path = if normalized_path == "/" {
+                    return Err(Error::InvalidResponse(
+                        "Cannot rename root directory".to_string(),
+                    ));
+                } else {
+                    let pos = normalized_path.rfind('/');
+                    match pos {
+                        Some(0) => "/",
+                        Some(p) => &normalized_path[..p],
+                        None => "/",
+                    }
+                };
+
+                let file_name = normalized_path.rsplit('/').next().unwrap_or("");
+
+                // List parent directory to find the object ID
+                let dir_list = client.list_directory(parent_path).await?;
+
+                // Find the object by name to get its ID
+                let obj = dir_list
+                    .objects
+                    .iter()
+                    .find(|obj| obj.name == file_name)
+                    .ok_or_else(|| Error::InvalidResponse(format!("File not found: {}", path)))?;
+
+                // Use object ID for rename
                 let request = v3_models::RenameObjectRequest {
                     action: "rename",
                     src: v3_models::SourceItems {
-                        dirs: if is_dir { vec![path] } else { vec![] },
-                        items: if !is_dir { vec![path] } else { vec![] },
+                        dirs: if obj.object_type == "dir" {
+                            vec![obj.id.as_str()]
+                        } else {
+                            vec![]
+                        },
+                        items: if obj.object_type != "dir" {
+                            vec![obj.id.as_str()]
+                        } else {
+                            vec![]
+                        },
                     },
                     new_name,
                 };
@@ -227,19 +266,49 @@ impl super::CloudreveAPI {
 
         match &self.inner {
             UnifiedClient::V3(client) => {
-                // V3 needs source items and destination directory
-                let is_dir = src.ends_with('/');
-                let src_dir = if let Some(pos) = src.rfind('/') {
-                    if pos == 0 { "/" } else { &src[..pos] }
+                // V3 needs object ID, not path. Get the ID from parent directory listing.
+                let normalized_path = if src.ends_with('/') && src != "/" {
+                    &src[..src.len() - 1]
+                } else {
+                    src
+                };
+
+                let src_dir = if let Some(pos) = normalized_path.rfind('/') {
+                    if pos == 0 {
+                        "/"
+                    } else {
+                        &normalized_path[..pos]
+                    }
                 } else {
                     "/"
                 };
+
+                let file_name = normalized_path.rsplit('/').next().unwrap_or("");
+
+                // List parent directory to find the object ID
+                let dir_list = client.list_directory(src_dir).await?;
+
+                // Find the object by name to get its ID
+                let obj = dir_list
+                    .objects
+                    .iter()
+                    .find(|obj| obj.name == file_name)
+                    .ok_or_else(|| Error::InvalidResponse(format!("File not found: {}", src)))?;
+
                 let request = v3_models::MoveObjectRequest {
                     action: "move",
                     src_dir,
                     src: v3_models::SourceItems {
-                        dirs: if is_dir { vec![src] } else { vec![] },
-                        items: if !is_dir { vec![src] } else { vec![] },
+                        dirs: if obj.object_type == "dir" {
+                            vec![obj.id.as_str()]
+                        } else {
+                            vec![]
+                        },
+                        items: if obj.object_type != "dir" {
+                            vec![obj.id.as_str()]
+                        } else {
+                            vec![]
+                        },
                     },
                     dst: dest,
                 };
@@ -265,18 +334,48 @@ impl super::CloudreveAPI {
 
         match &self.inner {
             UnifiedClient::V3(client) => {
-                // V3 needs source items and destination directory
-                let is_dir = src.ends_with('/');
-                let src_dir = if let Some(pos) = src.rfind('/') {
-                    if pos == 0 { "/" } else { &src[..pos] }
+                // V3 needs object ID, not path. Get the ID from parent directory listing.
+                let normalized_path = if src.ends_with('/') && src != "/" {
+                    &src[..src.len() - 1]
+                } else {
+                    src
+                };
+
+                let src_dir = if let Some(pos) = normalized_path.rfind('/') {
+                    if pos == 0 {
+                        "/"
+                    } else {
+                        &normalized_path[..pos]
+                    }
                 } else {
                     "/"
                 };
+
+                let file_name = normalized_path.rsplit('/').next().unwrap_or("");
+
+                // List parent directory to find the object ID
+                let dir_list = client.list_directory(src_dir).await?;
+
+                // Find the object by name to get its ID
+                let obj = dir_list
+                    .objects
+                    .iter()
+                    .find(|obj| obj.name == file_name)
+                    .ok_or_else(|| Error::InvalidResponse(format!("File not found: {}", src)))?;
+
                 let request = v3_models::CopyObjectRequest {
                     src_dir,
                     src: v3_models::SourceItems {
-                        dirs: if is_dir { vec![src] } else { vec![] },
-                        items: if !is_dir { vec![src] } else { vec![] },
+                        dirs: if obj.object_type == "dir" {
+                            vec![obj.id.as_str()]
+                        } else {
+                            vec![]
+                        },
+                        items: if obj.object_type != "dir" {
+                            vec![obj.id.as_str()]
+                        } else {
+                            vec![]
+                        },
                     },
                     dst: dest,
                 };
@@ -343,6 +442,21 @@ impl super::CloudreveAPI {
 
                 // Upload single chunk (for simplicity)
                 client.upload_chunk(&session.session_id, 0, content).await?;
+
+                // Note: complete_upload is only needed for certain storage policies (like OneDrive)
+                // For other policies, the upload is complete after the chunk is uploaded
+                // We attempt to complete but ignore errors if it's not supported
+                match client.complete_upload(&session.session_id).await {
+                    Ok(_) => {}
+                    Err(Error::Api { code: 40011, .. }) => {
+                        // "上传会话不存在或已过期" - might mean upload already completed
+                        debug!("complete_upload not needed or already completed");
+                    }
+                    Err(_) => {
+                        // Other errors, also ignore for now
+                        debug!("complete_upload returned error, ignoring");
+                    }
+                }
 
                 Ok(())
             }
@@ -451,7 +565,7 @@ impl super::CloudreveAPI {
                 let request = v4_models::CreateDownloadUrlRequest {
                     uris: vec![path],
                     download: Some(true),
-                    redirect: Some(true),
+                    redirect: Some(false), // 不自动重定向，返回 JSON 响应
                     entity: None,
                     use_primary_site_url: None,
                     skip_error: None,

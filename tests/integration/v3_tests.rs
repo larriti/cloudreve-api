@@ -8,12 +8,16 @@ use std::time::Instant;
 pub struct V3TestSuite {
     client: ApiV3Client,
     credentials: TestCredentials,
+    #[allow(dead_code)]
     config: TestConfig,
 }
 
 impl V3TestSuite {
     /// 创建新的测试套件
-    pub async fn new(config: TestConfig, credentials: TestCredentials) -> Result<Self, Box<dyn std::error::Error>> {
+    pub async fn new(
+        config: TestConfig,
+        credentials: TestCredentials,
+    ) -> Result<Self, Box<dyn std::error::Error>> {
         let v3_config = config.v3_config().ok_or("V3 配置未找到")?;
         let client = ApiV3Client::new(&v3_config.base_url);
 
@@ -79,7 +83,11 @@ impl V3TestSuite {
             }
             Err(e) => {
                 println!("│  │  ✗ 登录失败: {}", e);
-                results.add_failure("v3_session_login".to_string(), "v3".to_string(), e.to_string());
+                results.add_failure(
+                    "v3_session_login".to_string(),
+                    "v3".to_string(),
+                    e.to_string(),
+                );
             }
         }
 
@@ -91,7 +99,11 @@ impl V3TestSuite {
             }
             Err(e) => {
                 println!("│  │  ✗ 登出失败: {}", e);
-                results.add_failure("v3_session_logout".to_string(), "v3".to_string(), e.to_string());
+                results.add_failure(
+                    "v3_session_logout".to_string(),
+                    "v3".to_string(),
+                    e.to_string(),
+                );
             }
         }
 
@@ -114,7 +126,11 @@ impl V3TestSuite {
             }
             Err(e) => {
                 println!("│  │  ✗ 列出根目录失败: {}", e);
-                results.add_failure("v3_directory_list".to_string(), "v3".to_string(), e.to_string());
+                results.add_failure(
+                    "v3_directory_list".to_string(),
+                    "v3".to_string(),
+                    e.to_string(),
+                );
             }
         }
 
@@ -122,24 +138,33 @@ impl V3TestSuite {
         let test_dir_name = format!("test_dir_{}", chrono::Utc::now().timestamp());
         let test_path = format!("/{}", test_dir_name);
 
-        match self.client.create_directory(&CreateDirectoryRequest {
-            path: &test_path,
-        }).await {
+        match self
+            .client
+            .create_directory(&CreateDirectoryRequest { path: &test_path })
+            .await
+        {
             Ok(_) => {
                 println!("│  │  ✓ 创建目录: {}", test_path);
                 results.add_success();
 
                 // 清理：删除测试目录
-                let _ = self.client.delete_object(&DeleteObjectRequest {
-                    dirs: vec![&test_path],
-                    items: vec![],
-                    force: true,
-                    unlink: false,
-                }).await;
+                let _ = self
+                    .client
+                    .delete_object(&DeleteObjectRequest {
+                        dirs: vec![&test_path],
+                        items: vec![],
+                        force: true,
+                        unlink: false,
+                    })
+                    .await;
             }
             Err(e) => {
                 println!("│  │  ✗ 创建目录失败: {}", e);
-                results.add_failure("v3_directory_create".to_string(), "v3".to_string(), e.to_string());
+                results.add_failure(
+                    "v3_directory_create".to_string(),
+                    "v3".to_string(),
+                    e.to_string(),
+                );
             }
         }
 
@@ -179,14 +204,22 @@ impl V3TestSuite {
                 results.add_success();
 
                 // 上传分片（空数据用于测试）
-                match self.client.upload_chunk(&session.session_id, 0, vec![b' '; 1024]).await {
+                match self
+                    .client
+                    .upload_chunk(&session.session_id, 0, vec![b' '; 1024])
+                    .await
+                {
                     Ok(_) => {
                         println!("│  │  ✓ 上传分片成功");
                         results.add_success();
                     }
                     Err(e) => {
                         println!("│  │  ✗ 上传分片失败: {}", e);
-                        results.add_failure("v3_file_upload_chunk".to_string(), "v3".to_string(), e.to_string());
+                        results.add_failure(
+                            "v3_file_upload_chunk".to_string(),
+                            "v3".to_string(),
+                            e.to_string(),
+                        );
                     }
                 }
 
@@ -198,13 +231,21 @@ impl V3TestSuite {
                     }
                     Err(e) => {
                         println!("│  │  ✗ 完成上传失败: {}", e);
-                        results.add_failure("v3_file_complete_upload".to_string(), "v3".to_string(), e.to_string());
+                        results.add_failure(
+                            "v3_file_complete_upload".to_string(),
+                            "v3".to_string(),
+                            e.to_string(),
+                        );
                     }
                 }
             }
             Err(e) => {
                 println!("│  │  ✗ 创建上传会话失败: {}", e);
-                results.add_failure("v3_file_upload".to_string(), "v3".to_string(), e.to_string());
+                results.add_failure(
+                    "v3_file_upload".to_string(),
+                    "v3".to_string(),
+                    e.to_string(),
+                );
                 results.add_skip();
                 results.add_skip();
             }
@@ -223,18 +264,22 @@ impl V3TestSuite {
         let test_path = format!("/{}", test_dir_name);
 
         // 先创建目录
-        match self.client.create_directory(&CreateDirectoryRequest {
-            path: &test_path,
-        }).await {
+        match self
+            .client
+            .create_directory(&CreateDirectoryRequest { path: &test_path })
+            .await
+        {
             Ok(_) => {
                 // 等待目录创建完成
                 tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
 
                 // 获取对象 ID 用于后续操作
                 let obj_id = match self.client.list_directory("/").await {
-                    Ok(list) => {
-                        list.objects.iter().find(|o| o.name == test_dir_name).map(|o| o.id.clone())
-                    }
+                    Ok(list) => list
+                        .objects
+                        .iter()
+                        .find(|o| o.name == test_dir_name)
+                        .map(|o| o.id.clone()),
                     Err(_) => None,
                 };
 
@@ -247,41 +292,62 @@ impl V3TestSuite {
                         }
                         Err(e) => {
                             println!("│  │  ✗ 获取对象属性失败: {}", e);
-                            results.add_failure("v3_object_get_property".to_string(), "v3".to_string(), e.to_string());
+                            results.add_failure(
+                                "v3_object_get_property".to_string(),
+                                "v3".to_string(),
+                                e.to_string(),
+                            );
                         }
                     }
 
                     // 重命名测试 - 使用对象 ID 而不是路径
                     let new_name = format!("{}_renamed", test_dir_name);
-                    match self.client.rename_object(&RenameObjectRequest {
-                        action: "rename",
-                        src: SourceItems { dirs: vec![id.as_str()], items: vec![] },
-                        new_name: &new_name,
-                    }).await {
+                    match self
+                        .client
+                        .rename_object(&RenameObjectRequest {
+                            action: "rename",
+                            src: SourceItems {
+                                dirs: vec![id.as_str()],
+                                items: vec![],
+                            },
+                            new_name: &new_name,
+                        })
+                        .await
+                    {
                         Ok(_) => {
                             println!("│  │  ✓ 重命名对象成功");
                             results.add_success();
 
                             // 清理：删除重命名后的对象
                             let new_path = format!("/{}", new_name);
-                            let _ = self.client.delete_object(&DeleteObjectRequest {
-                                dirs: vec![new_path.as_str()],
-                                items: vec![],
-                                force: true,
-                                unlink: false,
-                            }).await;
+                            let _ = self
+                                .client
+                                .delete_object(&DeleteObjectRequest {
+                                    dirs: vec![new_path.as_str()],
+                                    items: vec![],
+                                    force: true,
+                                    unlink: false,
+                                })
+                                .await;
                         }
                         Err(e) => {
                             println!("│  │  ✗ 重命名对象失败: {}", e);
-                            results.add_failure("v3_object_rename".to_string(), "v3".to_string(), e.to_string());
+                            results.add_failure(
+                                "v3_object_rename".to_string(),
+                                "v3".to_string(),
+                                e.to_string(),
+                            );
 
                             // 清理
-                            let _ = self.client.delete_object(&DeleteObjectRequest {
-                                dirs: vec![test_path.as_str()],
-                                items: vec![],
-                                force: true,
-                                unlink: false,
-                            }).await;
+                            let _ = self
+                                .client
+                                .delete_object(&DeleteObjectRequest {
+                                    dirs: vec![test_path.as_str()],
+                                    items: vec![],
+                                    force: true,
+                                    unlink: false,
+                                })
+                                .await;
                         }
                     }
                 } else {
@@ -292,7 +358,11 @@ impl V3TestSuite {
             }
             Err(e) => {
                 println!("│  │  ✗ 创建目录失败: {}", e);
-                results.add_failure("v3_object_create".to_string(), "v3".to_string(), e.to_string());
+                results.add_failure(
+                    "v3_object_create".to_string(),
+                    "v3".to_string(),
+                    e.to_string(),
+                );
             }
         }
 
@@ -308,46 +378,62 @@ impl V3TestSuite {
         let test_dir_name = format!("test_share_{}", chrono::Utc::now().timestamp());
         let test_path = format!("/{}", test_dir_name);
 
-        let obj_id = if let Ok(_) = self.client.create_directory(&CreateDirectoryRequest {
-            path: &test_path,
-        }).await {
+        let obj_id = if self
+            .client
+            .create_directory(&CreateDirectoryRequest { path: &test_path })
+            .await
+            .is_ok()
+        {
             // 获取目录 ID
             match self.client.list_directory("/").await {
-                Ok(list) => {
-                    list.objects.iter().find(|o| o.name == test_dir_name).map(|o| o.id.clone())
-                }
-                _ => None
+                Ok(list) => list
+                    .objects
+                    .iter()
+                    .find(|o| o.name == test_dir_name)
+                    .map(|o| o.id.clone()),
+                _ => None,
             }
         } else {
             None
         };
 
         if let Some(id) = obj_id {
-            match self.client.create_share(&ShareRequest {
-                id: id.clone(),
-                is_dir: true,
-                password: "".to_string(),
-                downloads: 0,
-                expire: 0,
-                preview: true,
-            }).await {
+            match self
+                .client
+                .create_share(&ShareRequest {
+                    id: id.clone(),
+                    is_dir: true,
+                    password: "".to_string(),
+                    downloads: 0,
+                    expire: 0,
+                    preview: true,
+                })
+                .await
+            {
                 Ok(share) => {
                     println!("│  │  ✓ 创建分享: {}", share.key);
                     results.add_success();
                 }
                 Err(e) => {
                     println!("│  │  ✗ 创建分享失败: {}", e);
-                    results.add_failure("v3_share_create".to_string(), "v3".to_string(), e.to_string());
+                    results.add_failure(
+                        "v3_share_create".to_string(),
+                        "v3".to_string(),
+                        e.to_string(),
+                    );
                 }
             }
 
             // 清理
-            let _ = self.client.delete_object(&DeleteObjectRequest {
-                dirs: vec![&test_path],
-                items: vec![],
-                force: true,
-                unlink: false,
-            }).await;
+            let _ = self
+                .client
+                .delete_object(&DeleteObjectRequest {
+                    dirs: vec![&test_path],
+                    items: vec![],
+                    force: true,
+                    unlink: false,
+                })
+                .await;
         } else {
             results.add_skip();
         }
@@ -380,7 +466,11 @@ impl V3TestSuite {
             }
             Err(e) => {
                 println!("│  │  ✗ 获取站点配置失败: {}", e);
-                results.add_failure("v3_site_config".to_string(), "v3".to_string(), e.to_string());
+                results.add_failure(
+                    "v3_site_config".to_string(),
+                    "v3".to_string(),
+                    e.to_string(),
+                );
             }
         }
 
@@ -400,25 +490,43 @@ impl V3TestSuite {
             }
             Err(e) => {
                 println!("│  │  ✗ 获取用户设置失败: {}", e);
-                results.add_failure("v3_user_setting".to_string(), "v3".to_string(), e.to_string());
+                results.add_failure(
+                    "v3_user_setting".to_string(),
+                    "v3".to_string(),
+                    e.to_string(),
+                );
             }
         }
 
         // 获取存储信息 - 使用 ApiResponse 包装
-        match self.client.get::<ApiResponse<StorageInfo>>("/user/storage").await {
+        match self
+            .client
+            .get::<ApiResponse<StorageInfo>>("/user/storage")
+            .await
+        {
             Ok(response) => {
                 if let Some(storage) = response.data {
-                    println!("│  │  ✓ 获取存储信息: {} / {} bytes",
-                        storage.used, storage.total);
+                    println!(
+                        "│  │  ✓ 获取存储信息: {} / {} bytes",
+                        storage.used, storage.total
+                    );
                     results.add_success();
                 } else {
                     println!("│  │  ✗ 获取存储信息失败: 无数据");
-                    results.add_failure("v3_user_storage".to_string(), "v3".to_string(), "无数据".to_string());
+                    results.add_failure(
+                        "v3_user_storage".to_string(),
+                        "v3".to_string(),
+                        "无数据".to_string(),
+                    );
                 }
             }
             Err(e) => {
                 println!("│  │  ✗ 获取存储信息失败: {}", e);
-                results.add_failure("v3_user_storage".to_string(), "v3".to_string(), e.to_string());
+                results.add_failure(
+                    "v3_user_storage".to_string(),
+                    "v3".to_string(),
+                    e.to_string(),
+                );
             }
         }
 
@@ -430,7 +538,11 @@ impl V3TestSuite {
             }
             Err(e) => {
                 println!("│  │  ✗ 获取 WebDAV 账户失败: {}", e);
-                results.add_failure("v3_user_webdav".to_string(), "v3".to_string(), e.to_string());
+                results.add_failure(
+                    "v3_user_webdav".to_string(),
+                    "v3".to_string(),
+                    e.to_string(),
+                );
             }
         }
 

@@ -9,7 +9,9 @@ use std::collections::HashMap;
 pub struct OpenApiValidator {
     v3_spec: Option<Value>,
     v4_spec: Option<Value>,
+    #[allow(dead_code)]
     strict_mode: bool,
+    #[allow(dead_code)]
     allow_extra_fields: bool,
 }
 
@@ -26,9 +28,12 @@ pub struct ValidationReport {
 
 impl OpenApiValidator {
     /// 创建新的验证器
-    pub async fn new(strict_mode: bool, allow_extra_fields: bool) -> Result<Self, Box<dyn std::error::Error>> {
+    pub async fn new(
+        strict_mode: bool,
+        allow_extra_fields: bool,
+    ) -> Result<Self, Box<dyn std::error::Error>> {
         Ok(Self {
-            v3_spec: None,  // 将通过 MCP 工具加载
+            v3_spec: None, // 将通过 MCP 工具加载
             v4_spec: None,
             strict_mode,
             allow_extra_fields,
@@ -307,7 +312,10 @@ impl OpenApiValidator {
 impl ValidationReport {
     /// 打印验证报告
     pub fn print(&self) {
-        println!("\n┌─ {} OpenAPI 验证报告 ───────────────────────────", self.version);
+        println!(
+            "\n┌─ {} OpenAPI 验证报告 ───────────────────────────",
+            self.version
+        );
         println!("│  符合规范: {}", self.compliant.len());
         println!("│  警告: {}", self.warnings.len());
         println!("│  错误: {}", self.errors.len());
@@ -339,6 +347,7 @@ impl ValidationReport {
     }
 
     /// 是否有警告
+    #[allow(dead_code)]
     pub fn has_warnings(&self) -> bool {
         !self.warnings.is_empty() || !self.extra_implementations.is_empty()
     }

@@ -6,6 +6,7 @@ use std::path::Path;
 
 /// 测试配置
 #[derive(Debug, Clone, Deserialize)]
+#[allow(dead_code)]
 pub struct TestConfig {
     pub general: GeneralConfig,
     pub environments: EnvironmentsConfig,
@@ -14,6 +15,7 @@ pub struct TestConfig {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[allow(dead_code)]
 pub struct GeneralConfig {
     #[serde(default = "default_timeout")]
     pub timeout: u64,
@@ -39,6 +41,7 @@ pub struct EnvironmentConfig {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[allow(dead_code)]
 pub struct ValidationConfig {
     #[serde(default = "default_check_openapi")]
     pub check_openapi_compliance: bool,
@@ -49,6 +52,7 @@ pub struct ValidationConfig {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[allow(dead_code)]
 pub struct ReportingConfig {
     #[serde(default)]
     pub output_format: Vec<String>,
@@ -56,12 +60,24 @@ pub struct ReportingConfig {
     pub json_report_path: String,
 }
 
-fn default_timeout() -> u64 { 300 }
-fn default_parallel() -> bool { true }
-fn default_verbose() -> bool { true }
-fn default_check_openapi() -> bool { true }
-fn default_allow_extra_fields() -> bool { true }
-fn default_json_report_path() -> String { "test-results/results.json".to_string() }
+fn default_timeout() -> u64 {
+    300
+}
+fn default_parallel() -> bool {
+    true
+}
+fn default_verbose() -> bool {
+    true
+}
+fn default_check_openapi() -> bool {
+    true
+}
+fn default_allow_extra_fields() -> bool {
+    true
+}
+fn default_json_report_path() -> String {
+    "test-results/results.json".to_string()
+}
 
 impl TestConfig {
     /// 从文件加载配置
@@ -78,11 +94,10 @@ impl TestConfig {
             ));
         };
 
-        let content = fs::read_to_string(path)
-            .map_err(|e| format!("无法读取配置文件: {}", e))?;
+        let content = fs::read_to_string(path).map_err(|e| format!("无法读取配置文件: {}", e))?;
 
-        let config: TestConfig = toml::from_str(&content)
-            .map_err(|e| format!("解析配置文件失败: {}", e))?;
+        let config: TestConfig =
+            toml::from_str(&content).map_err(|e| format!("解析配置文件失败: {}", e))?;
 
         Ok(config)
     }
@@ -183,14 +198,19 @@ impl TestResults {
         println!("\n╔══════════════════════════════════════════════════════════╗");
         println!("║                   测试结果汇总                           ║");
         println!("╚══════════════════════════════════════════════════════════╝");
-        println!("总计: {} | 通过: {} | 失败: {} | 跳过: {}",
-            self.total, self.passed, self.failed, self.skipped);
+        println!(
+            "总计: {} | 通过: {} | 失败: {} | 跳过: {}",
+            self.total, self.passed, self.failed, self.skipped
+        );
         println!("耗时: {}ms\n", self.duration_ms);
 
         if !self.failures.is_empty() {
             println!("失败的测试:");
             for failure in &self.failures {
-                println!("  [{}] {}: {}", failure.version, failure.test_name, failure.error);
+                println!(
+                    "  [{}] {}: {}",
+                    failure.version, failure.test_name, failure.error
+                );
             }
             println!();
         }
@@ -199,6 +219,7 @@ impl TestResults {
 
 /// 测试凭证
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct TestCredentials {
     pub username: String,
     pub password: String,

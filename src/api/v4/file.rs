@@ -105,7 +105,7 @@ impl ApiV4Client {
         // V4 API may not have /file/rename endpoint, use /file/move instead
         // Extract parent directory and construct new path
         let uri = path_to_uri(file_path);
-        let new_uri = if let Some(parent) = file_path.rsplit('/').skip(1).next() {
+        let new_uri = if let Some(parent) = file_path.rsplit('/').nth(1) {
             if parent.is_empty() {
                 // Root directory
                 path_to_uri(&format!("/{}", request.name))

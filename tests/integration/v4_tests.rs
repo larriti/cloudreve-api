@@ -8,12 +8,16 @@ use std::time::Instant;
 pub struct V4TestSuite {
     client: ApiV4Client,
     credentials: TestCredentials,
+    #[allow(dead_code)]
     config: TestConfig,
 }
 
 impl V4TestSuite {
     /// 创建新的测试套件
-    pub async fn new(config: TestConfig, credentials: TestCredentials) -> Result<Self, Box<dyn std::error::Error>> {
+    pub async fn new(
+        config: TestConfig,
+        credentials: TestCredentials,
+    ) -> Result<Self, Box<dyn std::error::Error>> {
         let v4_config = config.v4_config().ok_or("V4 配置未找到")?;
         let mut client = ApiV4Client::new(&v4_config.base_url);
 
@@ -86,7 +90,11 @@ impl V4TestSuite {
             }
             Err(e) => {
                 println!("│  │  ✗ 准备登录失败: {}", e);
-                results.add_failure("v4_session_prepare".to_string(), "v4".to_string(), e.to_string());
+                results.add_failure(
+                    "v4_session_prepare".to_string(),
+                    "v4".to_string(),
+                    e.to_string(),
+                );
             }
         }
 
@@ -98,7 +106,11 @@ impl V4TestSuite {
             }
             Err(e) => {
                 println!("│  │  ✗ 登出失败: {}", e);
-                results.add_failure("v4_session_logout".to_string(), "v4".to_string(), e.to_string());
+                results.add_failure(
+                    "v4_session_logout".to_string(),
+                    "v4".to_string(),
+                    e.to_string(),
+                );
             }
         }
 
@@ -111,14 +123,18 @@ impl V4TestSuite {
         println!("│  ├─ File 测试...");
 
         // 列出根目录
-        match self.client.list_files(&ListFilesRequest {
-            path: "/",
-            page: Some(0),
-            page_size: Some(50),
-            order_by: None,
-            order_direction: None,
-            next_page_token: None,
-        }).await {
+        match self
+            .client
+            .list_files(&ListFilesRequest {
+                path: "/",
+                page: Some(0),
+                page_size: Some(50),
+                order_by: None,
+                order_direction: None,
+                next_page_token: None,
+            })
+            .await
+        {
             Ok(response) => {
                 println!("│  │  ✓ 列出根目录: {} 个对象", response.files.len());
                 results.add_success();
@@ -149,9 +165,11 @@ impl V4TestSuite {
 
                         // 重命名目录
                         let new_name = format!("{}_renamed", test_dir_name);
-                        match self.client.rename_file(&test_path, &RenameFileRequest {
-                            name: &new_name,
-                        }).await {
+                        match self
+                            .client
+                            .rename_file(&test_path, &RenameFileRequest { name: &new_name })
+                            .await
+                        {
                             Ok(_) => {
                                 println!("│  │  ✓ 重命名目录成功");
                                 results.add_success();
@@ -165,13 +183,21 @@ impl V4TestSuite {
                                     }
                                     Err(e) => {
                                         println!("│  │  ✗ 删除目录失败: {} (可能需要手动清理)", e);
-                                        results.add_failure("v4_file_delete".to_string(), "v4".to_string(), e.to_string());
+                                        results.add_failure(
+                                            "v4_file_delete".to_string(),
+                                            "v4".to_string(),
+                                            e.to_string(),
+                                        );
                                     }
                                 }
                             }
                             Err(e) => {
                                 println!("│  │  ✗ 重命名目录失败: {}", e);
-                                results.add_failure("v4_file_rename".to_string(), "v4".to_string(), e.to_string());
+                                results.add_failure(
+                                    "v4_file_rename".to_string(),
+                                    "v4".to_string(),
+                                    e.to_string(),
+                                );
                                 // 清理
                                 let _ = self.client.delete_file(&test_path).await;
                             }
@@ -179,8 +205,11 @@ impl V4TestSuite {
                     }
                     Err(e) => {
                         println!("│  │  ✗ 获取文件信息失败: {} (检测到 API 响应格式问题)", e);
-                        results.add_failure("v4_file_info".to_string(), "v4".to_string(),
-                            format!("{} - 这表明该端点在文件不存在时返回了非标准格式的响应", e));
+                        results.add_failure(
+                            "v4_file_info".to_string(),
+                            "v4".to_string(),
+                            format!("{} - 这表明该端点在文件不存在时返回了非标准格式的响应", e),
+                        );
                         // 清理
                         let _ = self.client.delete_file(&test_path).await;
                     }
@@ -188,7 +217,11 @@ impl V4TestSuite {
             }
             Err(e) => {
                 println!("│  │  ✗ 创建目录失败: {}", e);
-                results.add_failure("v4_file_create".to_string(), "v4".to_string(), e.to_string());
+                results.add_failure(
+                    "v4_file_create".to_string(),
+                    "v4".to_string(),
+                    e.to_string(),
+                );
             }
         }
 
@@ -208,7 +241,11 @@ impl V4TestSuite {
             }
             Err(e) => {
                 println!("│  │  ✗ 获取用户设置失败: {}", e);
-                results.add_failure("v4_user_setting".to_string(), "v4".to_string(), e.to_string());
+                results.add_failure(
+                    "v4_user_setting".to_string(),
+                    "v4".to_string(),
+                    e.to_string(),
+                );
             }
         }
 
@@ -224,7 +261,11 @@ impl V4TestSuite {
             }
             Err(e) => {
                 println!("│  │  ✗ 获取用户容量失败: {}", e);
-                results.add_failure("v4_user_capacity".to_string(), "v4".to_string(), e.to_string());
+                results.add_failure(
+                    "v4_user_capacity".to_string(),
+                    "v4".to_string(),
+                    e.to_string(),
+                );
             }
         }
 
@@ -264,7 +305,11 @@ impl V4TestSuite {
             }
             Err(e) => {
                 println!("│  │  ✗ 列出 WebDAV 账户失败: {}", e);
-                results.add_failure("v4_webdav_list".to_string(), "v4".to_string(), e.to_string());
+                results.add_failure(
+                    "v4_webdav_list".to_string(),
+                    "v4".to_string(),
+                    e.to_string(),
+                );
             }
         }
 
@@ -284,7 +329,11 @@ impl V4TestSuite {
             }
             Err(e) => {
                 println!("│  │  ✗ 列出工作流任务失败: {}", e);
-                results.add_failure("v4_workflow_list".to_string(), "v4".to_string(), e.to_string());
+                results.add_failure(
+                    "v4_workflow_list".to_string(),
+                    "v4".to_string(),
+                    e.to_string(),
+                );
             }
         }
 
@@ -316,7 +365,11 @@ impl V4TestSuite {
             }
             Err(e) => {
                 println!("│  │  ✗ 获取站点版本失败: {}", e);
-                results.add_failure("v4_site_version".to_string(), "v4".to_string(), e.to_string());
+                results.add_failure(
+                    "v4_site_version".to_string(),
+                    "v4".to_string(),
+                    e.to_string(),
+                );
             }
         }
 

@@ -20,7 +20,9 @@ async fn run_api_integration_tests() {
         Err(e) => {
             println!("\n错误: {}", e);
             println!("\n请按以下步骤配置测试环境:");
-            println!("1. 复制配置文件: cp tests/config/test_config.example.toml tests/config/test_config.toml");
+            println!(
+                "1. 复制配置文件: cp tests/config/test_config.example.toml tests/config/test_config.toml"
+            );
             println!("2. 编辑 tests/config/test_config.toml，填入你的测试环境信息");
             println!("3. 重新运行测试\n");
             panic!("配置文件未找到或无效");
@@ -78,9 +80,10 @@ async fn run_api_integration_tests() {
         println!("║     OpenAPI 规范验证                                    ║");
         println!("╚══════════════════════════════════════════════════════════╝");
 
-        let mut validator = OpenApiValidator::new(config.strict_mode(), config.allow_extra_fields())
-            .await
-            .expect("无法创建验证器");
+        let mut validator =
+            OpenApiValidator::new(config.strict_mode(), config.allow_extra_fields())
+                .await
+                .expect("无法创建验证器");
 
         // 尝试从缓存加载规范
         let _ = validator.load_v3_from_cache().await;
