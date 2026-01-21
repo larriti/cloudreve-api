@@ -7,6 +7,14 @@ use crate::api::v4::uri::path_to_uri;
 use crate::client::UnifiedClient;
 use log::debug;
 
+/// Result of batch delete operation
+#[derive(Debug, Default)]
+pub struct DeleteResult {
+    pub deleted: usize,
+    pub failed: usize,
+    pub errors: Vec<(String, String)>,
+}
+
 /// File operation methods for CloudreveAPI
 impl super::CloudreveAPI {
     /// List files in a directory
@@ -282,6 +290,41 @@ impl super::CloudreveAPI {
                 client.delete_file(path).await?;
                 Ok(())
             }
+        }
+    }
+
+    /// Batch delete multiple files and/or folders
+    ///
+    /// This method accepts multiple paths and deletes them all in a single API call.
+    /// Files and folders can be mixed in the same request. The server handles
+    /// recursive deletion of folder contents automatically.
+    ///
+    /// # Arguments
+    /// * `paths` - Slice of paths to delete (can mix files and folders)
+    ///
+    /// # Example
+    /// ```no_run
+    /// # use cloudreve_api::CloudreveAPI;
+    /// # async fn example(api: &CloudreveAPI) -> cloudreve_api::Result<()> {
+    /// // Delete multiple items at once
+    /// api.batch_delete(&[
+    ///     "/folder/file1.txt",
+    ///     "/folder/file2.txt",
+    ///     "/another_folder",  // folder will be deleted recursively
+    /// ]).await?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn batch_delete(&self, paths: &[&str]) -> Result<DeleteResult, Error> {
+        debug!("Batch deleting {} paths", paths.len());
+
+        if paths.is_empty() {
+            return Ok(DeleteResult::default());
+        }
+
+        match &self.inner {
+            UnifiedClient::V3(client) => self.batch_delete_v3(client, paths).await,
+            UnifiedClient::V4(client) => self.batch_delete_v4(client, paths).await,
         }
     }
 
@@ -1335,5 +1378,170 @@ impl FileInfo {
             FileInfo::V3(obj) => obj.date.clone(),
             FileInfo::V4(file) => file.updated_at.clone(),
         }
+    }
+}
+
+// Private methods for batch_delete
+impl super::CloudreveAPI {
+    async fn batch_delete_v3(
+        &self,
+        client: &crate::api::v3::ApiV3Client,
+        paths: &[&str],
+    ) -> Result<DeleteResult, Error> {
+        let mut result = DeleteResult::default();
+
+        // Group paths by parent directory to minimize API calls
+        use std::collections::HashMap;
+        let mut parent_groups: HashMap<&str, Vec<&str>> = HashMap::new();
+
+        for path in paths {
+            // Normalize path
+            let normalized = if path.ends_with('/') && *path != "/" {
+                &path[..path.len() - 1]
+            } else {
+                *path
+            };
+
+            // Get parent directory
+            let parent = if normalized == "/" {
+                return Err(Error::InvalidResponse(
+                    "Cannot delete root directory".to_string(),
+                ));
+            } else {
+                let pos = normalized.rfind('/');
+                match pos {
+                    Some(0) => "/",
+                    Some(p) => &normalized[..p],
+                    None => "/",
+                }
+            };
+
+            parent_groups.entry(parent).or_default().push(normalized);
+        }
+
+        // For each parent directory, list once and delete all items
+        for (parent_dir, items) in parent_groups {
+            let dir_list = match client.list_directory(parent_dir).await {
+                Ok(list) => list,
+                Err(e) => {
+                    // All items in this group failed
+                    result.failed += items.len();
+                    for item in &items {
+                        result.errors.push((item.to_string(), e.to_string()));
+                    }
+                    continue;
+                }
+            };
+
+            // Find IDs for all items and separate into files and folders
+            let mut file_ids = Vec::new();
+            let mut folder_ids = Vec::new();
+
+            for item_path in &items {
+                let file_name = item_path.rsplit('/').next().unwrap_or("");
+
+                match dir_list.objects.iter().find(|obj| obj.name == file_name) {
+                    Some(obj) => {
+                        if obj.object_type == "dir" {
+                            folder_ids.push(obj.id.as_str());
+                        } else {
+                            file_ids.push(obj.id.as_str());
+                        }
+                    }
+                    None => {
+                        result.failed += 1;
+                        result
+                            .errors
+                            .push((item_path.to_string(), "File not found".to_string()));
+                    }
+                }
+            }
+
+            // Delete all files and folders in one API call
+            if !file_ids.is_empty() || !folder_ids.is_empty() {
+                let item_count = file_ids.len() + folder_ids.len();
+                let request = v3_models::DeleteObjectRequest {
+                    items: file_ids,
+                    dirs: folder_ids,
+                    force: true,
+                    unlink: false,
+                };
+
+                match client.delete_object(&request).await {
+                    Ok(_) => {
+                        result.deleted += item_count;
+                    }
+                    Err(e) => {
+                        result.failed += item_count;
+                        for item_path in &items {
+                            result.errors.push((item_path.to_string(), e.to_string()));
+                        }
+                    }
+                }
+            }
+        }
+
+        Ok(result)
+    }
+
+    async fn batch_delete_v4(
+        &self,
+        client: &crate::api::v4::ApiV4Client,
+        paths: &[&str],
+    ) -> Result<DeleteResult, Error> {
+        let mut result = DeleteResult::default();
+
+        // Convert all paths to URIs
+        let uris: Vec<String> = paths
+            .iter()
+            .map(|p| crate::api::v4::uri::path_to_uri(p))
+            .collect();
+
+        let uri_refs: Vec<&str> = uris.iter().map(|s| s.as_str()).collect();
+
+        let request = v4_models::DeleteFileRequest {
+            uris: uri_refs,
+            unlink: None,
+            skip_soft_delete: None,
+        };
+
+        let response: v4_models::ApiResponse<()> =
+            client.delete_with_body("/file", &request).await?;
+        match response.code {
+            0 => {
+                result.deleted = paths.len();
+            }
+            code => {
+                // On error, fall back to individual deletion
+                debug!(
+                    "Batch delete failed (code {}), falling back to individual deletion",
+                    code
+                );
+                for (path, uri) in paths.iter().zip(uris.iter()) {
+                    let single_request = v4_models::DeleteFileRequest {
+                        uris: vec![uri.as_str()],
+                        unlink: None,
+                        skip_soft_delete: None,
+                    };
+                    let result_: Result<v4_models::ApiResponse<()>, Error> =
+                        client.delete_with_body("/file", &single_request).await;
+                    match result_ {
+                        Ok(resp) if resp.code == 0 => result.deleted += 1,
+                        Ok(resp) => {
+                            result.failed += 1;
+                            result
+                                .errors
+                                .push((path.to_string(), format!("API error code: {}", resp.code)));
+                        }
+                        Err(e) => {
+                            result.failed += 1;
+                            result.errors.push((path.to_string(), e.to_string()));
+                        }
+                    }
+                }
+            }
+        }
+
+        Ok(result)
     }
 }

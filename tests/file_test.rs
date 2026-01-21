@@ -1,9 +1,33 @@
-use cloudreve_api::Result;
 use cloudreve_api::api::v4::models::*;
+use cloudreve_api::{DeleteResult, Result};
 
 #[cfg(test)]
 mod file_tests {
     use super::*;
+
+    #[test]
+    fn test_delete_result_struct() {
+        let result = DeleteResult::default();
+        assert_eq!(result.deleted, 0);
+        assert_eq!(result.failed, 0);
+        assert!(result.errors.is_empty());
+    }
+
+    #[test]
+    fn test_delete_result_with_values() {
+        let mut result = DeleteResult {
+            deleted: 5,
+            failed: 1,
+            ..Default::default()
+        };
+        result
+            .errors
+            .push(("path1".to_string(), "error1".to_string()));
+
+        assert_eq!(result.deleted, 5);
+        assert_eq!(result.failed, 1);
+        assert_eq!(result.errors.len(), 1);
+    }
 
     #[tokio::test]
     async fn test_upload_request_struct() -> Result<()> {
