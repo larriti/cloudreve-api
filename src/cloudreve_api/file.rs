@@ -372,15 +372,45 @@ impl super::CloudreveAPI {
 
                 let file_name = normalized_path.rsplit('/').next().unwrap_or("");
 
+                debug!(
+                    "V3 rename: parent_path={}, file_name={}, new_name={}",
+                    parent_path, file_name, new_name
+                );
+
                 // List parent directory to find the object ID
                 let dir_list = client.list_directory(parent_path).await?;
+
+                debug!(
+                    "V3 rename: found {} objects in parent directory",
+                    dir_list.objects.len()
+                );
 
                 // Find the object by name to get its ID
                 let obj = dir_list
                     .objects
                     .iter()
                     .find(|obj| obj.name == file_name)
-                    .ok_or_else(|| Error::InvalidResponse(format!("File not found: {}", path)))?;
+                    .ok_or_else(|| {
+                        // Provide helpful error message showing available files
+                        let available_files: Vec<String> = dir_list.objects
+                            .iter()
+                            .filter(|obj| obj.object_type == "file")
+                            .map(|obj| obj.name.clone())
+                            .take(10)
+                            .collect();
+                        Error::InvalidResponse(format!(
+                            "File not found: '{}'. Did you mean:\n  - {}\nAvailable files in {}: {}",
+                            path,
+                            available_files.join("\n  - "),
+                            parent_path,
+                            available_files.len()
+                        ))
+                    })?;
+
+                debug!(
+                    "V3 rename: found object id={}, type={}",
+                    obj.id, obj.object_type
+                );
 
                 // Use object ID for rename
                 let request = v3_models::RenameObjectRequest {
@@ -429,6 +459,13 @@ impl super::CloudreveAPI {
                     src
                 };
 
+                // Normalize destination path - remove trailing slash unless it's root
+                let normalized_dest = if dest.ends_with('/') && dest != "/" {
+                    &dest[..dest.len() - 1]
+                } else {
+                    dest
+                };
+
                 let src_dir = if let Some(pos) = normalized_path.rfind('/') {
                     if pos == 0 {
                         "/"
@@ -441,6 +478,11 @@ impl super::CloudreveAPI {
 
                 let file_name = normalized_path.rsplit('/').next().unwrap_or("");
 
+                debug!(
+                    "V3 move: src_dir={}, file_name={}, dest={}",
+                    src_dir, file_name, normalized_dest
+                );
+
                 // List parent directory to find the object ID
                 let dir_list = client.list_directory(src_dir).await?;
 
@@ -450,6 +492,24 @@ impl super::CloudreveAPI {
                     .iter()
                     .find(|obj| obj.name == file_name)
                     .ok_or_else(|| Error::InvalidResponse(format!("File not found: {}", src)))?;
+
+                debug!(
+                    "V3 move: found object id={}, type={}",
+                    obj.id, obj.object_type
+                );
+
+                // Verify destination directory exists
+                match client.list_directory(normalized_dest).await {
+                    Ok(_) => {
+                        debug!("V3 move: destination directory exists");
+                    }
+                    Err(e) => {
+                        return Err(Error::InvalidResponse(format!(
+                            "Destination directory '{}' does not exist or is not accessible: {}",
+                            normalized_dest, e
+                        )));
+                    }
+                }
 
                 let request = v3_models::MoveObjectRequest {
                     action: "move",
@@ -466,7 +526,7 @@ impl super::CloudreveAPI {
                             vec![]
                         },
                     },
-                    dst: dest,
+                    dst: normalized_dest,
                 };
                 client.move_object(&request).await?;
                 Ok(())
