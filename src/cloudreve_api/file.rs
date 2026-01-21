@@ -27,16 +27,78 @@ impl super::CloudreveAPI {
                 Ok(FileList::V3(dir_list))
             }
             UnifiedClient::V4(client) => {
-                let request = v4_models::ListFilesRequest {
+                let page_size = page_size.unwrap_or(100);
+
+                // First, fetch the first page to check pagination mode (cursor vs offset)
+                let first_request = v4_models::ListFilesRequest {
                     path,
-                    page,
-                    page_size,
+                    page: Some(0),
+                    page_size: Some(page_size),
                     order_by: None,
                     order_direction: None,
                     next_page_token: None,
                 };
-                let list_response = client.list_files(&request).await?;
-                Ok(FileList::V4(Box::new(list_response)))
+                let first_response = client.list_files(&first_request).await?;
+
+                // If no page specified or requesting page 0, return the first page
+                if page.is_none() || page == Some(0) {
+                    return Ok(FileList::V4(Box::new(first_response)));
+                }
+
+                let target_page = page.unwrap();
+                let is_cursor = first_response.pagination.is_cursor;
+
+                if is_cursor {
+                    // Cursor pagination: need to fetch pages sequentially to get next_page_token
+                    let mut next_token = first_response.pagination.next_token.clone();
+                    let mut current_response = first_response;
+
+                    for current_page in 1..=target_page {
+                        // Check if we have more pages
+                        if next_token.is_none()
+                            || next_token.as_ref().map(|t| t.is_empty()).unwrap_or(true)
+                        {
+                            return Err(Error::InvalidResponse(format!(
+                                "Page {} does not exist (only {} pages available)",
+                                target_page, current_page
+                            )));
+                        }
+
+                        // Fetch next page using the token
+                        let request = v4_models::ListFilesRequest {
+                            path,
+                            page: Some(current_page),
+                            page_size: Some(page_size),
+                            order_by: None,
+                            order_direction: None,
+                            next_page_token: next_token.as_deref(),
+                        };
+                        current_response = client.list_files(&request).await?;
+
+                        // If this is the target page, return it
+                        if current_page == target_page {
+                            return Ok(FileList::V4(Box::new(current_response)));
+                        }
+
+                        // Get next token for next iteration
+                        next_token = current_response.pagination.next_token.clone();
+                    }
+
+                    // Should not reach here, but handle the case
+                    Ok(FileList::V4(Box::new(current_response)))
+                } else {
+                    // Offset pagination: can directly request the target page
+                    let request = v4_models::ListFilesRequest {
+                        path,
+                        page: Some(target_page),
+                        page_size: Some(page_size),
+                        order_by: None,
+                        order_direction: None,
+                        next_page_token: None,
+                    };
+                    let list_response = client.list_files(&request).await?;
+                    Ok(FileList::V4(Box::new(list_response)))
+                }
             }
         }
     }
