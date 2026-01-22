@@ -187,12 +187,12 @@ impl ApiV4Client {
     }
 
     pub async fn get_settings(&self) -> Result<UserSettings, Error> {
-        let response: ApiResponse<UserSettings> = self.get("/user/settings").await?;
+        let response: ApiResponse<UserSettings> = self.get("/user/setting").await?;
         Ok(response.data.unwrap())
     }
 
     pub async fn update_settings(&self, settings: &UserSettings) -> Result<UserSettings, Error> {
-        let response: ApiResponse<UserSettings> = self.put("/user/settings", settings).await?;
+        let response: ApiResponse<UserSettings> = self.put("/user/setting", settings).await?;
         Ok(response.data.unwrap())
     }
 

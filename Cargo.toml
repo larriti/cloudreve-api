@@ -1,6 +1,6 @@
 [package]
 name = "cloudreve-api"
-version = "0.4.2"
+version = "0.5.0"
 edition.workspace = true
 description = "A Rust library for interacting with Cloudreve API"
 license.workspace = true
@@ -23,7 +23,7 @@ futures = "0.3"
 
 [dev-dependencies]
 tokio = { workspace = true }
-toml = "0.8"
+toml = "0.9"
 
 [lib]
 name = "cloudreve_api"

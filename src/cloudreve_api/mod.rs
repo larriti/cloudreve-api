@@ -20,6 +20,7 @@ pub use auth::{LoginResponse, TokenInfo, V3LoginResponse, V4LoginResponse};
 pub use dav::{DavAccount, DavListResponse};
 pub use file::{DeleteResult, DeleteTarget, FileInfo, FileItem, FileList, FileListAll};
 pub use share::{ShareItem, ShareUpdateProps};
+pub use site::SiteConfigValue;
 pub use user::{StorageQuota, UserInfo};
 
 // Submodules
@@ -28,6 +29,7 @@ pub mod dav;
 pub mod download;
 pub mod file;
 pub mod share;
+pub mod site;
 pub mod user;
 
 /// Unified Cloudreve API client
@@ -107,6 +109,15 @@ impl CloudreveAPI {
         match &self.inner {
             UnifiedClient::V3(client) => client.ping().await,
             UnifiedClient::V4(client) => client.ping().await,
+        }
+    }
+}
+
+impl Clone for CloudreveAPI {
+    fn clone(&self) -> Self {
+        Self {
+            inner: self.inner.clone(),
+            base_url: self.base_url.clone(),
         }
     }
 }

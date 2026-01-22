@@ -193,7 +193,7 @@ pub struct ShareRequest {
 }
 
 /// Site configuration for v3 API
-#[derive(Debug, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct SiteConfig {
     #[serde(default)]
     pub title: String,

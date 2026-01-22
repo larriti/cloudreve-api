@@ -29,7 +29,20 @@ impl ApiV4Client {
         }
     }
 
-    pub async fn get_site_config(&self, section: &str) -> Result<SiteConfig, Error> {
+    pub async fn get_site_config(&self, section: SiteConfigSection) -> Result<SiteConfig, Error> {
+        let endpoint = format!("/site/config/{}", section);
+        let response: crate::ApiResponse<SiteConfig> = self.get(&endpoint).await?;
+        match response.data {
+            Some(config) => Ok(config),
+            None => Err(crate::Error::Api {
+                code: response.code,
+                message: response.msg,
+            }),
+        }
+    }
+
+    /// Get site config by section string (for backward compatibility)
+    pub async fn get_site_config_str(&self, section: &str) -> Result<SiteConfig, Error> {
         let endpoint = format!("/site/config/{}", section);
         let response: crate::ApiResponse<SiteConfig> = self.get(&endpoint).await?;
         match response.data {

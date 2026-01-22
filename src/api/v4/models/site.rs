@@ -2,8 +2,44 @@
 
 use serde::{Deserialize, Serialize};
 
+/// Site configuration section type
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SiteConfigSection {
+    Basic,
+    Login,
+    Explorer,
+    Emojis,
+    Vas,
+    App,
+    Thumb,
+}
+
+impl SiteConfigSection {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Basic => "basic",
+            Self::Login => "login",
+            Self::Explorer => "explorer",
+            Self::Emojis => "emojis",
+            Self::Vas => "vas",
+            Self::App => "app",
+            Self::Thumb => "thumb",
+        }
+    }
+}
+
+impl std::fmt::Display for SiteConfigSection {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
 /// Site configuration
-#[derive(Debug, Deserialize)]
+///
+/// Different sections return different fields.
+/// All fields are optional and use `#[serde(default)]` to handle missing data.
+#[derive(Debug, Clone, Deserialize, Default)]
+#[serde(default)]
 pub struct SiteConfig {
     pub instance_id: Option<String>,
     pub title: Option<String>,
@@ -16,8 +52,8 @@ pub struct SiteConfig {
     pub authn: Option<bool>,
     pub user: Option<super::auth::NewUser>,
     pub captcha_re_captcha_key: Option<String>,
-    pub captcha_cap_instance_url: String,
-    pub captcha_cap_site_key: String,
+    pub captcha_cap_instance_url: Option<String>,
+    pub captcha_cap_site_key: Option<String>,
     pub site_notice: Option<String>,
     pub captcha_type: Option<String>,
     pub turnstile_site_id: Option<String>,
@@ -60,22 +96,27 @@ pub struct SiteConfig {
 }
 
 /// File viewer configuration
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(default)]
 pub struct FileViewer {
+    #[serde(default)]
     pub extensions: Vec<String>,
+    #[serde(default)]
     pub handler: String,
+    #[serde(default)]
     pub name: String,
+    #[serde(default)]
     pub priority: i32,
 }
 
 /// Payment setting
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PaymentSetting {
     pub providers: Vec<PaymentProvider>,
 }
 
 /// Payment provider
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PaymentProvider {
     pub id: String,
     pub name: String,
@@ -83,7 +124,7 @@ pub struct PaymentProvider {
 }
 
 /// Storage product
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StorageProduct {
     pub id: String,
     pub name: String,
@@ -92,7 +133,7 @@ pub struct StorageProduct {
 }
 
 /// Group SKU
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GroupSKU {
     pub id: String,
     pub name: String,
@@ -101,16 +142,21 @@ pub struct GroupSKU {
 }
 
 /// Custom property
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(default)]
 pub struct CustomProps {
+    #[serde(default)]
     pub key: String,
+    #[serde(default)]
     pub name: String,
+    #[serde(default)]
     pub r#type: String,
+    #[serde(default)]
     pub options: Option<Vec<String>>,
 }
 
 /// Custom navigation item
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CustomNavItem {
     pub icon: String,
     pub name: String,
@@ -118,7 +164,7 @@ pub struct CustomNavItem {
 }
 
 /// Custom HTML
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CustomHTML {
     pub head: Option<String>,
     pub body: Option<String>,

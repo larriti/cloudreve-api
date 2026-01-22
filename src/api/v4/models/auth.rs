@@ -75,13 +75,19 @@ pub struct NewUser {
 }
 
 /// Extended group information
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[serde(default)]
 pub struct NewGroup {
+    #[serde(default)]
     pub id: String,
+    #[serde(default)]
     pub name: String,
+    #[serde(default)]
     pub permission: String,
-    pub direct_link_batch_size: i64,
-    pub trash_retention: i64,
+    #[serde(default)]
+    pub direct_link_batch_size: Option<i64>,
+    #[serde(default)]
+    pub trash_retention: Option<i64>,
 }
 
 /// User status enum

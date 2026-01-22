@@ -377,9 +377,35 @@ impl V4TestSuite {
             }
         }
 
-        // 获取站点配置 - 跳过此测试，因为结构可能不匹配
-        println!("│  │  ⊘ 跳过站点配置测试（结构复杂，可能需要更新）");
-        results.add_skip();
+        // 获取站点配置 - 测试不同的 section
+        use cloudreve_api::api::v4::models::SiteConfigSection;
+
+        let sections = [
+            SiteConfigSection::Basic,
+            SiteConfigSection::Login,
+            SiteConfigSection::Explorer,
+            SiteConfigSection::Emojis,
+            SiteConfigSection::Vas,
+            SiteConfigSection::App,
+            SiteConfigSection::Thumb,
+        ];
+
+        for section in sections {
+            match self.client.get_site_config(section).await {
+                Ok(config) => {
+                    println!("│  │  ✓ 获取站点配置 [{}] 成功", section.as_str());
+                    results.add_success();
+                }
+                Err(e) => {
+                    println!("│  │  ✗ 获取站点配置 [{}] 失败: {}", section.as_str(), e);
+                    results.add_failure(
+                        format!("v4_site_config_{}", section.as_str()),
+                        "v4".to_string(),
+                        e.to_string(),
+                    );
+                }
+            }
+        }
 
         results
     }

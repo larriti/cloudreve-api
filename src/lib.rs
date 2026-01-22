@@ -43,7 +43,7 @@ pub use api::v4::models::*;
 // Main Cloudreve API client
 pub use cloudreve_api::{
     CloudreveAPI, DeleteResult, DeleteTarget, FileInfo, FileItem, FileList, FileListAll,
-    LoginResponse, TokenInfo, UserInfo, V3LoginResponse, V4LoginResponse,
+    LoginResponse, SiteConfigValue, TokenInfo, UserInfo, V3LoginResponse, V4LoginResponse,
 };
 
 // Legacy exports for backward compatibility
