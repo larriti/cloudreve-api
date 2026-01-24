@@ -392,7 +392,7 @@ impl V4TestSuite {
 
         for section in sections {
             match self.client.get_site_config(section).await {
-                Ok(config) => {
+                Ok(_config) => {
                     println!("│  │  ✓ 获取站点配置 [{}] 成功", section.as_str());
                     results.add_success();
                 }

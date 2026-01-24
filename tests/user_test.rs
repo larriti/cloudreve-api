@@ -58,11 +58,7 @@ mod user_tests {
             storage_pack_total: None,
         };
 
-        let _settings = UserSettings {
-            theme: Some("default".to_string()),
-            language: Some("en".to_string()),
-            timezone: Some("UTC".to_string()),
-        };
+        let _settings = UserSettings::default();
 
         let _credit_record = CreditChangeRecord {
             id: "1".to_string(),
