@@ -174,11 +174,18 @@ impl ApiV4Client {
         new_password: &str,
     ) -> Result<(), Error> {
         let request = ChangePasswordRequest {
-            old_password,
+            current_password: old_password,
             new_password,
         };
-        let _: ApiResponse<()> = self.post("/user/password", &request).await?;
-        Ok(())
+        let response: ApiResponse<()> = self.patch("/user/setting", &request).await?;
+        if response.code == 0 {
+            Ok(())
+        } else {
+            Err(Error::Api {
+                code: response.code,
+                message: response.msg,
+            })
+        }
     }
 
     pub async fn get_quota(&self) -> Result<Quota, Error> {

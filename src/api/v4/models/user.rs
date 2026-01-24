@@ -139,9 +139,10 @@ pub struct UpdateProfileRequest<'a> {
 }
 
 /// Change password request
+/// Uses the /user/setting endpoint with current_password and new_password fields
 #[derive(Debug, Serialize)]
 pub struct ChangePasswordRequest<'a> {
-    pub old_password: &'a str,
+    pub current_password: &'a str,
     pub new_password: &'a str,
 }
 

@@ -28,7 +28,7 @@ mod user_tests {
     #[tokio::test]
     async fn test_change_password_request_struct() -> Result<()> {
         let _change_password_request = ChangePasswordRequest {
-            old_password: "old_password",
+            current_password: "old_password",
             new_password: "new_password",
         };
         Ok(())
